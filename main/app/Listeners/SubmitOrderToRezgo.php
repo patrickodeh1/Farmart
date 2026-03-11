@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class SubmitOrderToRezgo implements ShouldQueue
 {
@@ -86,6 +87,22 @@ class SubmitOrderToRezgo implements ShouldQueue
             'X-Api-Key' => self::REZGO_API_KEY,
         ])->post(self::REZGO_API_URL . '/bookings', $payload);
 
+        $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
+        $isSuccessful = $response->successful();
+
+        // Log to database for tracking
+        DB::table('rezgo_submissions')->insert([
+            'order_id' => $order->id,
+            'rezgo_booking_id' => $rezgoBookingId,
+            'status' => $isSuccessful ? 'success' : 'failed',
+            'request_payload' => json_encode($payload, JSON_PRETTY_PRINT),
+            'response_payload' => $response->body(),
+            'http_status' => $response->status(),
+            'error_message' => $isSuccessful ? null : $response->body(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         Log::info('Rezgo API response', [
             'order_id' => $order->id,
             'status' => $response->status(),
@@ -96,12 +113,13 @@ class SubmitOrderToRezgo implements ShouldQueue
             $order->update([
                 'meta' => array_merge(
                     (array) json_decode($order->meta ?? '{}', true),
-                    ['rezgo_booking_id' => $response->json('booking_id') ?? null]
+                    ['rezgo_booking_id' => $rezgoBookingId]
                 ),
             ]);
 
             Log::info('Order successfully submitted to Rezgo', [
                 'order_id' => $order->id,
+                'rezgo_booking_id' => $rezgoBookingId,
                 'rezgo_response' => $response->json(),
             ]);
         } else {
