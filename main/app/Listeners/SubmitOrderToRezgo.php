@@ -61,8 +61,17 @@ class SubmitOrderToRezgo
             }
         }
 
-        // Send to Rezgo API (root endpoint accepts action parameter)
-        $response = Http::timeout(15)->asForm()->post('https://api.rezgo.com/', $payload);
+        // Send to Rezgo API with proper authentication
+        // Remove CID and API key from payload - add as headers instead
+        $payloadForAPI = $payload;
+        unset($payloadForAPI['cid'], $payloadForAPI['api_key']);
+        
+        $response = Http::timeout(15)
+            ->withHeaders([
+                'X-Rezgo-CID' => self::REZGO_CID,
+                'X-Rezgo-Key' => self::REZGO_API_KEY,
+            ])
+            ->post('https://api.rezgo.com/v2.1/bookings', $payloadForAPI);
 
         $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
         $isSuccessful = $response->successful();
@@ -72,7 +81,7 @@ class SubmitOrderToRezgo
             'order_id' => $order->id,
             'rezgo_booking_id' => $rezgoBookingId,
             'status' => $isSuccessful ? 'success' : 'failed',
-            'request_payload' => json_encode($payload, JSON_PRETTY_PRINT),
+            'request_payload' => json_encode($payloadForAPI, JSON_PRETTY_PRINT),
             'response_payload' => $response->body(),
             'http_status' => $response->status(),
             'error_message' => $isSuccessful ? null : $response->body(),
