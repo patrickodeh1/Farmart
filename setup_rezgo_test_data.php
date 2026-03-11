@@ -115,7 +115,7 @@ foreach ($testTours as $idx => $tour) {
         if (!$product) {
             $product = new Product();
             $product->name = $tour['name'];
-            $product->slug = Str::slug($tour['name']);
+            // Note: Botble Farmart doesn't use 'slug' field for products
             $product->description = 'Test product for ' . $tour['type'] . ' experience';
             $product->status = 'published';
             $product->price = $tour['price'];
@@ -144,18 +144,17 @@ try {
     $customer = Customer::firstOrCreate(
         ['email' => 'test@dreamzone.com'],
         [
-            'first_name' => 'Dreamzone',
-            'last_name' => 'Test',
+            'name' => 'Dreamzone Test',
             'phone' => '555-0123',
             'password' => bcrypt('password123'),
-            'is_active' => true,
+            'status' => 'activated',
         ]
     );
     
     if ($customer->wasRecentlyCreated) {
-        echo "✓ Created new customer: " . $customer->first_name . " " . $customer->last_name . "\n";
+        echo "✓ Created new customer: " . $customer->name . "\n";
     } else {
-        echo "✓ Using existing customer: " . $customer->first_name . " " . $customer->last_name . "\n";
+        echo "✓ Using existing customer: " . $customer->name . "\n";
     }
     echo "  Email: " . $customer->email . "\n";
     echo "  Customer ID: " . $customer->id . "\n";
@@ -181,9 +180,8 @@ foreach ($createdProducts as $idx => $product) {
         $order->code = 'REZTEST' . date('YmdHis') . str_pad($idx + 1, 2, '0', STR_PAD_LEFT);
         $order->description = 'Rezgo Test Order - ' . $product->name;
         $order->status = 'pending';
-        $order->payment_status = 'pending';
-        $order->total = $product->price;
-        $order->subtotal = $product->price;
+        $order->amount = $product->price;
+        $order->sub_total = $product->price;
         $order->save();
         
         // Create order product line item
@@ -191,9 +189,10 @@ foreach ($createdProducts as $idx => $product) {
         $orderProduct->order_id = $order->id;
         $orderProduct->product_id = $product->id;
         $orderProduct->product_name = $product->name;
-        $orderProduct->product_price = $product->price;
         $orderProduct->qty = 1;
         $orderProduct->price = $product->price;
+        $orderProduct->tax_amount = 0;
+        $orderProduct->product_type = 'physical';
         $orderProduct->save();
         
         echo "✓ Order #" . $order->id . " | Code: " . $order->code . "\n";
@@ -217,7 +216,7 @@ echo "\n";
 
 echo "SUMMARY:\n";
 echo "────────────────────────────────────────────────────────────\n";
-echo "✓ Customer Created: Dreamzone Test (test@dreamzone.com)\n";
+echo "✓ Customer Created: " . $customer->name . " (" . $customer->email . ")\n";
 echo "✓ Products Created: " . count($createdProducts) . " test products\n";
 echo "  - 5 Universal Orlando products\n";
 echo "  - 5 Disney Parks products\n";
