@@ -33,7 +33,7 @@ class SubmitOrderToRezgo
      * Submit order to Rezgo booking API
      * 
      * Rezgo API uses query parameter format:
-     * https://api.rezgo.com/json?transcode=CID&key=API_KEY&i=INSTRUCTION
+     * https://api.rezgo.com/index_json.php?transcode=CID&key=API_KEY&i=INSTRUCTION
      */
     private function submitOrderToRezgo($order): void
     {
@@ -69,7 +69,8 @@ class SubmitOrderToRezgo
         }
 
         // Build URL with query parameters
-        $url = 'https://api.rezgo.com/json?' . http_build_query($queryParams);
+        // Use index_json.php endpoint (as indicated by the 406 error response)
+        $url = 'https://api.rezgo.com/index_json.php?' . http_build_query($queryParams);
 
         // Send GET request to Rezgo API (Rezgo uses query parameters, not POST body)
         $response = Http::timeout(15)
