@@ -61,17 +61,35 @@ class SubmitOrderToRezgo
             }
         }
 
-        // Send to Rezgo API with proper authentication
-        // Remove CID and API key from payload - add as headers instead
-        $payloadForAPI = $payload;
-        unset($payloadForAPI['cid'], $payloadForAPI['api_key']);
+        // Send to Rezgo API 
+        // Based on Rezgo API patterns, try with query parameters for credentials
+        // and form-encoded body for the booking data
+        $queryParams = http_build_query([
+            'cid' => self::REZGO_CID,
+            'key' => self::REZGO_API_KEY,
+        ]);
         
+        $bookingData = [
+            'action' => 'booking_add',
+            'order_id' => $payload['order_id'],
+            'customer_name' => $payload['customer_name'],
+            'customer_email' => $payload['customer_email'],
+            'customer_phone' => $payload['customer_phone'],
+            'total_amount' => $payload['total_amount'],
+            'currency' => $payload['currency'],
+        ];
+        
+        // Add items if present
+        if (!empty($payload['items'])) {
+            $bookingData['items'] = json_encode($payload['items']);
+        }
+
         $response = Http::timeout(15)
             ->withHeaders([
-                'X-Rezgo-CID' => self::REZGO_CID,
-                'X-Rezgo-Key' => self::REZGO_API_KEY,
+                'Accept' => 'application/json',
             ])
-            ->post('https://api.rezgo.com/v2.1/bookings', $payloadForAPI);
+            ->asForm()
+            ->post("https://api.rezgo.com/?{$queryParams}", $bookingData);
 
         $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
         $isSuccessful = $response->successful();
@@ -81,7 +99,7 @@ class SubmitOrderToRezgo
             'order_id' => $order->id,
             'rezgo_booking_id' => $rezgoBookingId,
             'status' => $isSuccessful ? 'success' : 'failed',
-            'request_payload' => json_encode($payloadForAPI, JSON_PRETTY_PRINT),
+            'request_payload' => json_encode($payload, JSON_PRETTY_PRINT),
             'response_payload' => $response->body(),
             'http_status' => $response->status(),
             'error_message' => $isSuccessful ? null : $response->body(),
