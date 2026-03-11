@@ -28,19 +28,24 @@ class SubmitOrderToRezgo
     {
         $order = $event->order;
         
+        Log::info('=== REZGO LISTENER TRIGGERED ===', ['order_id' => $order->id]);
         Log::info('📦 Order placed event received', [
             'order_id' => $order->id,
             'customer_email' => $order->email,
             'amount' => $order->amount,
-            'items' => $order->items ? $order->items->count() : 0,
+            'items_count' => $order->items ? $order->items->count() : 0,
+            'status' => $order->status,
         ]);
 
         try {
+            Log::info('🚀 Starting Rezgo submission...');
             $this->submitOrderToRezgo($order);
+            Log::info('✅ Rezgo submission completed successfully');
         } catch (\Exception $e) {
-            Log::error('❌ Failed to submit order to Rezgo', [
+            Log::error('❌ Exception in Rezgo listener', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -50,6 +55,8 @@ class SubmitOrderToRezgo
      */
     private function submitOrderToRezgo($order): void
     {
+        Log::info('Building Rezgo payload...', ['order_id' => $order->id]);
+
         // Build payload for Rezgo API
         $payload = [
             'cid' => self::REZGO_CID,
@@ -77,6 +84,11 @@ class SubmitOrderToRezgo
             }
         }
 
+        Log::info('📤 Sending to Rezgo API', [
+            'url' => self::REZGO_API_URL . '/bookings',
+            'payload' => $payload
+        ]);
+
         // Send to Rezgo
         $response = Http::timeout(15)->withHeaders([
             'Content-Type' => 'application/json',
@@ -86,24 +98,34 @@ class SubmitOrderToRezgo
         $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
         $isSuccessful = $response->successful();
 
-        // Log to database for tracking
-        DB::table('rezgo_submissions')->insert([
-            'order_id' => $order->id,
-            'rezgo_booking_id' => $rezgoBookingId,
-            'status' => $isSuccessful ? 'success' : 'failed',
-            'request_payload' => json_encode($payload, JSON_PRETTY_PRINT),
-            'response_payload' => $response->body(),
-            'http_status' => $response->status(),
-            'error_message' => $isSuccessful ? null : $response->body(),
-            'created_at' => now(),
-            'updated_at' => now(),
+        Log::info('📡 Rezgo API response received', [
+            'status' => $response->status(),
+            'successful' => $isSuccessful,
+            'booking_id' => $rezgoBookingId,
+            'body' => $response->body(),
         ]);
 
-        Log::info('Rezgo API response', [
-            'order_id' => $order->id,
-            'status' => $response->status(),
-            'response' => $response->json(),
-        ]);
+        // Log to database for tracking
+        try {
+            DB::table('rezgo_submissions')->insert([
+                'order_id' => $order->id,
+                'rezgo_booking_id' => $rezgoBookingId,
+                'status' => $isSuccessful ? 'success' : 'failed',
+                'request_payload' => json_encode($payload, JSON_PRETTY_PRINT),
+                'response_payload' => $response->body(),
+                'http_status' => $response->status(),
+                'error_message' => $isSuccessful ? null : $response->body(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            Log::info('✅ Rezgo submission logged to database', ['order_id' => $order->id]);
+        } catch (\Exception $dbError) {
+            Log::error('❌ Failed to insert into rezgo_submissions table', [
+                'order_id' => $order->id,
+                'error' => $dbError->getMessage(),
+            ]);
+            throw $dbError;
+        }
 
         if ($response->successful()) {
             $order->update([
@@ -113,13 +135,16 @@ class SubmitOrderToRezgo
                 ),
             ]);
 
-            Log::info('Order successfully submitted to Rezgo', [
+            Log::info('✅ Order successfully submitted to Rezgo', [
                 'order_id' => $order->id,
                 'rezgo_booking_id' => $rezgoBookingId,
-                'rezgo_response' => $response->json(),
             ]);
         } else {
-            throw new \Exception('Rezgo API error: ' . $response->body());
+            Log::error('⚠️ Rezgo API returned non-success status', [
+                'order_id' => $order->id,
+                'status' => $response->status(),
+                'response' => $response->body(),
+            ]);
         }
     }
 }
