@@ -19,7 +19,7 @@
     <div class="alert alert-primary d-flex align-items-center" role="alert">
         <span style="font-size: 20px; margin-right: 10px;">ℹ️</span>
         <div>
-            <strong>Integration Active:</strong> Orders are automatically submitted to Rezgo when placed through checkout. All API interactions are logged below for verification.
+            <strong>Live Integration:</strong> Orders are automatically submitted to Rezgo in real-time.
         </div>
     </div>
 
@@ -83,14 +83,8 @@
         @if($submissions->isEmpty())
             <div class="card-body">
                 <div class="alert alert-info mb-0" role="alert">
-                    <h5 class="alert-heading">📬 No Submissions Yet</h5>
-                    <p class="mb-0">
-                        Place an order on the storefront to see API interactions appear here automatically. 
-                        Orders are submitted to Rezgo in real-time when checkout completes.
-                    </p>
-                    <small class="text-muted d-block mt-2">
-                        🛒 Test the integration: Visit the store, add a product to cart, and complete checkout.
-                    </small>
+                    <h5 class="alert-heading">📬 No Submissions</h5>
+                    <p class="mb-0">No Rezgo API submissions yet. Orders will appear here when placed.</p>
                 </div>
             </div>
         @else
@@ -309,91 +303,31 @@
     <div class="mt-4 p-4 bg-light rounded border">
         <div class="row">
             <div class="col-md-6">
-                <h6 class="fw-bold mb-3">🔐 Integration Configuration</h6>
+                <h6 class="fw-bold mb-3">🔐 Configuration</h6>
                 <ul class="list-unstyled small">
-                    <li class="mb-2">
-                        <strong>Rezgo CID:</strong> 
-                        <code class="bg-white p-1 rounded">32036</code>
-                    </li>
-                    <li class="mb-2">
-                        <strong>API Endpoint:</strong> 
-                        <code class="bg-white p-1 rounded">https://api.rezgo.com/v1/bookings</code>
-                    </li>
-                    <li class="mb-2">
-                        <strong>Authentication:</strong> 
-                        <span class="badge bg-info">API Key Header</span>
-                    </li>
-                    <li class="mb-2">
-                        <strong>Integration Type:</strong> 
-                        <span class="badge bg-success">Event-driven (Real-time)</span>
-                    </li>
-                    <li>
-                        <strong>Submission Method:</strong> 
-                        <span class="badge bg-primary">HTTP POST</span>
-                    </li>
+                    <li class="mb-2"><strong>CID:</strong> <code>32036</code></li>
+                    <li class="mb-2"><strong>API:</strong> <code>https://api.rezgo.com/v2.1/packages</code></li>
+                    <li class="mb-2"><strong>Auth:</strong> API Key</li>
+                    <li><strong>Type:</strong> Event-driven</li>
                 </ul>
             </div>
             <div class="col-md-6">
-                <h6 class="fw-bold mb-3">📊 Live Statistics</h6>
+                <h6 class="fw-bold mb-3">📊 Statistics</h6>
                 <ul class="list-unstyled small">
-                    <li class="mb-2">
-                        <strong>Total Orders Tracked:</strong> 
-                        <span class="badge bg-secondary">{{ $submissions->count() }}</span>
-                    </li>
-                    <li class="mb-2">
-                        <strong>Successful Submissions:</strong> 
-                        <span class="badge bg-success">{{ $submissions->where('status', 'success')->count() }}</span>
-                    </li>
-                    <li class="mb-2">
-                        <strong>Failed Submissions:</strong> 
-                        <span class="badge bg-danger">{{ $submissions->where('status', 'failed')->count() }}</span>
-                    </li>
-                    <li class="mb-2">
-                        <strong>Success Rate:</strong> 
-                        <span class="badge bg-info">
-                            @if($submissions->count() > 0)
-                                {{ round(($submissions->where('status', 'success')->count() / $submissions->count()) * 100) }}%
-                            @else
-                                0%
-                            @endif
-                        </span>
-                    </li>
-                    <li>
-                        <strong>Last Activity:</strong> 
-                        <span class="badge bg-warning">
-                            {{ $submissions->first()?->created_at->diffForHumans() ?? 'None yet' }}
-                        </span>
-                    </li>
+                    <li class="mb-2"><strong>Total:</strong> <span class="badge bg-secondary">{{ $submissions->count() }}</span></li>
+                    <li class="mb-2"><strong>Success:</strong> <span class="badge bg-success">{{ $submissions->where('status', 'success')->count() }}</span></li>
+                    <li class="mb-2"><strong>Failed:</strong> <span class="badge bg-danger">{{ $submissions->where('status', 'failed')->count() }}</span></li>
+                    <li><strong>Rate:</strong> <span class="badge bg-info">
+                        @if($submissions->count() > 0)
+                            {{ round(($submissions->where('status', 'success')->count() / $submissions->count()) * 100) }}%
+                        @else
+                            0%
+                        @endif
+                    </span></li>
                 </ul>
             </div>
         </div>
     </div>
-
-    <!-- Debug/Support Section -->
-    <div class="mt-4 p-3 bg-warning bg-opacity-10 rounded border border-warning">
-        <h6 class="text-dark fw-bold">🔧 Troubleshooting & Support</h6>
-        <small class="text-muted">
-            If submissions are failing, verify:
-            <ul class="mb-0 mt-2">
-                <li>✓ Rezgo API Key is valid and has sufficient permissions</li>
-                <li>✓ Network connectivity to api.rezgo.com is available</li>
-                <li>✓ Request payload contains all required Rezgo fields</li>
-                <li>✓ Order items have valid pricing and details</li>
-                <li>✓ Check error message in Details modal for specific API errors</li>
-            </ul>
-        </small>
-    </div>
-
-    <!-- Last Updated -->
-    @if($submissions->count() > 0)
-        <div class="mt-3 text-center">
-            <small class="text-muted">
-                📈 Showing {{ $submissions->count() }} submission(s) • 
-                ⏱️ Last updated: {{ now()->format('M d, Y H:i:s T') }} • 
-                🔄 Auto-refresh page for latest data
-            </small>
-        </div>
-    @endif
 </div>
 
 <style>

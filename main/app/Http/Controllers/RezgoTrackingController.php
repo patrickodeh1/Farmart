@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\DB;
+use App\Models\RezgoSubmission;
 use Illuminate\Http\Request;
 
 class RezgoTrackingController extends Controller
@@ -12,10 +12,7 @@ class RezgoTrackingController extends Controller
      */
     public function dashboard()
     {
-        $submissions = DB::table('rezgo_submissions')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
+        $submissions = RezgoSubmission::orderBy('created_at', 'desc')->get();
         return view('rezgo-submissions', compact('submissions'));
     }
 
@@ -24,10 +21,7 @@ class RezgoTrackingController extends Controller
      */
     public function getSubmission($orderId)
     {
-        $submission = DB::table('rezgo_submissions')
-            ->where('order_id', $orderId)
-            ->latest()
-            ->first();
+        $submission = RezgoSubmission::where('order_id', $orderId)->latest()->first();
 
         if (!$submission) {
             return response()->json([
@@ -56,19 +50,9 @@ class RezgoTrackingController extends Controller
     public function getAllSubmissions(Request $request)
     {
         $limit = $request->input('limit', 20);
-
-        $submissions = DB::table('rezgo_submissions')
-            ->select([
-                'id',
-                'order_id',
-                'rezgo_booking_id',
-                'status',
-                'http_status',
-                'created_at',
-            ])
-            ->latest()
-            ->limit($limit)
-            ->get();
+        $submissions = RezgoSubmission::select([
+            'id', 'order_id', 'rezgo_booking_id', 'status', 'http_status', 'created_at'
+        ])->latest()->limit($limit)->get();
 
         return response()->json([
             'success' => true,
@@ -82,9 +66,7 @@ class RezgoTrackingController extends Controller
      */
     public function getSubmissionDetail($id)
     {
-        $submission = DB::table('rezgo_submissions')
-            ->where('id', $id)
-            ->first();
+        $submission = RezgoSubmission::find($id);
 
         if (!$submission) {
             return response()->json([
