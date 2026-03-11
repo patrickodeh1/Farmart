@@ -1,0 +1,32 @@
+# Laravel
+/node_modules
+/vendor
+/.env
+/.env.local
+/.env.*.local
+/public/storage
+/storage/*.key
+/bootstrap/cache/
+.env.backup
+.phpunit.result.cache
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Docker
+.docker/
+
+# OS
+*.log
+.DS_Store
+
+# Misc
+.cache/
+*.swp
+*.swo
+*~
