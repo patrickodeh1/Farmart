@@ -35,7 +35,7 @@ class SubmitOrderToRezgo implements ShouldQueue
             'order_id' => $order->id,
             'customer_email' => $order->email,
             'total' => $order->total,
-            'items' => $order->items->count(),
+            'items' => $order->items ? $order->items->count() : 0,
         ]);
 
         try {
@@ -59,23 +59,25 @@ class SubmitOrderToRezgo implements ShouldQueue
             'api_key' => self::REZGO_API_KEY,
             'action' => 'booking_add',
             'order_id' => $order->id,
-            'customer_name' => $order->user?->name ?? $order->address->name,
+            'customer_name' => $order->user?->name ?? $order->address->name ?? 'Guest',
             'customer_email' => $order->email,
-            'customer_phone' => $order->phone,
+            'customer_phone' => $order->phone ?? '',
             'total_amount' => $order->total,
             'currency' => 'USD',
             'items' => [],
         ];
 
         // Add order items/products
-        foreach ($order->items as $item) {
-            $payload['items'][] = [
-                'product_id' => $item->product_id,
-                'product_name' => $item->product_name,
-                'quantity' => $item->qty,
-                'price' => $item->price,
-                'total' => $item->amount,
-            ];
+        if ($order->items && $order->items->count() > 0) {
+            foreach ($order->items as $item) {
+                $payload['items'][] = [
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'quantity' => $item->qty,
+                    'price' => $item->price,
+                    'total' => $item->amount,
+                ];
+            }
         }
 
         // Send to Rezgo
