@@ -85,15 +85,25 @@ class SubmitOrderToRezgo
         }
 
         Log::info('📤 Sending to Rezgo API', [
-            'url' => self::REZGO_API_URL . '/bookings',
-            'payload' => $payload
+            'url' => 'https://api.rezgo.com/v2.1/packages',
+            'cid' => self::REZGO_CID,
+            'payload_keys' => array_keys($payload)
         ]);
 
-        // Send to Rezgo
-        $response = Http::timeout(15)->withHeaders([
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ])->post(self::REZGO_API_URL . '/bookings', $payload);
+        // Send to Rezgo - using correct endpoint format per Rezgo API docs
+        // Rezgo API expects query params rather than JSON body for some endpoints
+        $response = Http::timeout(15)->asForm()->post('https://api.rezgo.com/v2.1/packages', [
+            'cid' => self::REZGO_CID,
+            'api_key' => self::REZGO_API_KEY,
+            'action' => 'booking_add',
+            'order_id' => (string)$order->id,
+            'customer_name' => $order->user?->name ?? 'Guest',
+            'customer_email' => $order->user?->email ?? ($order->address?->email ?? 'noemail@farmart.test'),
+            'customer_phone' => $order->address?->phone ?? '000-000-0000',
+            'total_amount' => (float)$order->amount,
+            'currency' => 'USD',
+            'items' => json_encode($payload['items']),
+        ]);
 
         $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
         $isSuccessful = $response->successful();
