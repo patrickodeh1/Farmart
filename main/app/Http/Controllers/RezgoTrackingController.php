@@ -8,7 +8,19 @@ use Illuminate\Http\Request;
 class RezgoTrackingController extends Controller
 {
     /**
-     * Get Rezgo API submissions for an order
+     * Display the Rezgo submissions dashboard
+     */
+    public function dashboard()
+    {
+        $submissions = DB::table('rezgo_submissions')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('rezgo-submissions', compact('submissions'));
+    }
+
+    /**
+     * Get Rezgo API submissions for an order (JSON API)
      */
     public function getSubmission($orderId)
     {
@@ -39,7 +51,7 @@ class RezgoTrackingController extends Controller
     }
 
     /**
-     * Get all Rezgo submissions
+     * Get all Rezgo submissions (JSON API)
      */
     public function getAllSubmissions(Request $request)
     {
@@ -66,7 +78,7 @@ class RezgoTrackingController extends Controller
     }
 
     /**
-     * Get submission detail with full payload
+     * Get submission detail with full payload (JSON API)
      */
     public function getSubmissionDetail($id)
     {
