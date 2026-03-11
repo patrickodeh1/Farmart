@@ -14,7 +14,12 @@
  */
 
 // Bootstrap Laravel
-$basePath = __DIR__ . '/main';
+// Handle both local development (with /main) and production deployment (without /main)
+$basePath = __DIR__;
+if (!file_exists($basePath . '/vendor/autoload.php') && file_exists($basePath . '/main/vendor/autoload.php')) {
+    $basePath = $basePath . '/main';
+}
+
 require_once $basePath . '/vendor/autoload.php';
 $app = require_once $basePath . '/bootstrap/app.php';
 $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
