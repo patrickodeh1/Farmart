@@ -61,8 +61,8 @@ class SubmitOrderToRezgo
             }
         }
 
-        // Send to Rezgo API (v1 endpoint with action-based format)
-        $response = Http::timeout(15)->asForm()->post('https://api.rezgo.com/v1/packages', $payload);
+        // Send to Rezgo API (root endpoint accepts action parameter)
+        $response = Http::timeout(15)->asForm()->post('https://api.rezgo.com/', $payload);
 
         $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
         $isSuccessful = $response->successful();
