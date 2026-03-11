@@ -3,16 +3,12 @@
 namespace App\Listeners;
 
 use Botble\Ecommerce\Events\OrderPlacedEvent;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
-class SubmitOrderToRezgo implements ShouldQueue
+class SubmitOrderToRezgo
 {
-    use InteractsWithQueue;
-
     private const REZGO_API_URL = 'https://api.rezgo.com/v1';
     private const REZGO_CID = '32036';
     private const REZGO_API_KEY = '9B8-D1V1-V2C8-H4O5-O7Q';
@@ -32,17 +28,17 @@ class SubmitOrderToRezgo implements ShouldQueue
     {
         $order = $event->order;
         
-        Log::info('Order placed event received', [
+        Log::info('📦 Order placed event received', [
             'order_id' => $order->id,
             'customer_email' => $order->email,
-            'total' => $order->total,
+            'amount' => $order->amount,
             'items' => $order->items ? $order->items->count() : 0,
         ]);
 
         try {
             $this->submitOrderToRezgo($order);
         } catch (\Exception $e) {
-            Log::error('Failed to submit order to Rezgo', [
+            Log::error('❌ Failed to submit order to Rezgo', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
             ]);
@@ -59,11 +55,11 @@ class SubmitOrderToRezgo implements ShouldQueue
             'cid' => self::REZGO_CID,
             'api_key' => self::REZGO_API_KEY,
             'action' => 'booking_add',
-            'order_id' => $order->id,
-            'customer_name' => $order->user?->name ?? $order->address->name ?? 'Guest',
-            'customer_email' => $order->email,
-            'customer_phone' => $order->phone ?? '',
-            'total_amount' => $order->total,
+            'order_id' => (string)$order->id,
+            'customer_name' => $order->user?->name ?? ($order->address->name ?? 'Guest'),
+            'customer_email' => $order->email ?? 'noemail@farmart.test',
+            'customer_phone' => $order->phone ?? '000-000-0000',
+            'total_amount' => (float)$order->amount,
             'currency' => 'USD',
             'items' => [],
         ];
@@ -82,9 +78,9 @@ class SubmitOrderToRezgo implements ShouldQueue
         }
 
         // Send to Rezgo
-        $response = Http::withHeaders([
+        $response = Http::timeout(15)->withHeaders([
             'Content-Type' => 'application/json',
-            'X-Api-Key' => self::REZGO_API_KEY,
+            'Accept' => 'application/json',
         ])->post(self::REZGO_API_URL . '/bookings', $payload);
 
         $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
