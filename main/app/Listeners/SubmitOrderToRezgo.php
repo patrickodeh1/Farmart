@@ -31,27 +31,30 @@ class SubmitOrderToRezgo
 
     /**
      * Submit order to Rezgo booking API
+     * 
+     * Rezgo API uses query parameter format:
+     * https://api.rezgo.com/json?transcode=CID&key=API_KEY&i=INSTRUCTION
      */
     private function submitOrderToRezgo($order): void
     {
-        // Build payload for Rezgo API
-        $payload = [
-            'cid' => self::REZGO_CID,
-            'api_key' => self::REZGO_API_KEY,
-            'action' => 'booking_add',
+        // Build query parameters for Rezgo API (using correct parameter names)
+        $queryParams = [
+            'transcode' => self::REZGO_CID,      // Rezgo uses "transcode" for CID
+            'key' => self::REZGO_API_KEY,        // Rezgo uses "key" for API key
+            'i' => 'commit',                      // Instruction: commit a booking
             'order_id' => (string)$order->id,
             'customer_name' => $order->user?->name ?? ($order->address?->name ?? 'Guest'),
             'customer_email' => $order->user?->email ?? ($order->address?->email ?? 'noemail@farmart.test'),
             'customer_phone' => $order->address?->phone ?? '000-000-0000',
             'total_amount' => (float)$order->amount,
             'currency' => 'USD',
-            'items' => [],
         ];
 
-        // Add order items/products
+        // Add order items as JSON parameter
+        $items = [];
         if ($order->items && $order->items->count() > 0) {
             foreach ($order->items as $item) {
-                $payload['items'][] = [
+                $items[] = [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product_name,
                     'quantity' => $item->qty,
@@ -60,46 +63,33 @@ class SubmitOrderToRezgo
                 ];
             }
         }
-
-        // Send to Rezgo API 
-        // Based on Rezgo API patterns, try with query parameters for credentials
-        // and form-encoded body for the booking data
-        $queryParams = http_build_query([
-            'cid' => self::REZGO_CID,
-            'key' => self::REZGO_API_KEY,
-        ]);
         
-        $bookingData = [
-            'action' => 'booking_add',
-            'order_id' => $payload['order_id'],
-            'customer_name' => $payload['customer_name'],
-            'customer_email' => $payload['customer_email'],
-            'customer_phone' => $payload['customer_phone'],
-            'total_amount' => $payload['total_amount'],
-            'currency' => $payload['currency'],
-        ];
-        
-        // Add items if present
-        if (!empty($payload['items'])) {
-            $bookingData['items'] = json_encode($payload['items']);
+        if (!empty($items)) {
+            $queryParams['items'] = json_encode($items);
         }
 
+        // Build URL with query parameters
+        $url = 'https://api.rezgo.com/json?' . http_build_query($queryParams);
+
+        // Send GET request to Rezgo API (Rezgo uses query parameters, not POST body)
         $response = Http::timeout(15)
             ->withHeaders([
                 'Accept' => 'application/json',
             ])
-            ->asForm()
-            ->post("https://api.rezgo.com/?{$queryParams}", $bookingData);
+            ->get($url);
 
         $rezgoBookingId = $response->json('booking_id') ?? $response->json('id') ?? null;
         $isSuccessful = $response->successful();
 
-        // Log to database for tracking
+        // Log to database for tracking (exclude API key from logs for security)
+        $safeQueryParams = $queryParams;
+        unset($safeQueryParams['key']); // Remove API key before logging
+        
         RezgoSubmission::create([
             'order_id' => $order->id,
             'rezgo_booking_id' => $rezgoBookingId,
             'status' => $isSuccessful ? 'success' : 'failed',
-            'request_payload' => json_encode($payload, JSON_PRETTY_PRINT),
+            'request_payload' => json_encode($safeQueryParams, JSON_PRETTY_PRINT),
             'response_payload' => $response->body(),
             'http_status' => $response->status(),
             'error_message' => $isSuccessful ? null : $response->body(),
