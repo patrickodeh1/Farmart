@@ -17,6 +17,14 @@ class SetupRezgoTestData extends Command
     protected $signature = 'rezgo:setup-test-data {--update-existing : Update existing John Doe submission}';
     protected $description = 'Set up test data for Rezgo integration testing';
 
+    protected RezgoApiService $api;
+
+    public function __construct(RezgoApiService $api)
+    {
+        parent::__construct();
+        $this->api = $api;
+    }
+
     public function handle()
     {
         $this->info("\n=== REZGO TEST DATA SETUP ===\n");
@@ -86,8 +94,7 @@ class SetupRezgoTestData extends Command
 
     private function fetchAndSelectTours(): array
     {
-        $api = new RezgoApiService();
-        $response = $api->searchInventory([]);
+        $response = $this->api->searchInventory([]);
 
         if (!isset($response['data']['item'])) {
             $this->warn('  No tours returned from API');
