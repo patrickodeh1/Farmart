@@ -63,12 +63,25 @@
                                             <td>
                                                 <div class="small">
                                                     @foreach ($order['products'] as $product)
+                                                        @php
+                                                            $availability = isset($tourAvailability[$product['rezgo_tour']]) 
+                                                                ? $tourAvailability[$product['rezgo_tour']]['availability'] 
+                                                                : 'Unknown';
+                                                            $hasAvailability = is_numeric($availability) && $availability > 0;
+                                                        @endphp
                                                         <div>
                                                             <span class="badge bg-{{ $product['mapped'] ? 'success' : 'warning' }}">
                                                                 {{ $product['product_name'] }} (x{{ $product['quantity'] }})
                                                             </span>
                                                             @if ($product['mapped'])
-                                                                <br><small class="text-muted">→ {{ $product['rezgo_tour'] }}</small>
+                                                                <br><small class="text-muted">
+                                                                    → {{ $product['rezgo_title'] }}
+                                                                    @if (is_numeric($availability))
+                                                                        <span class="badge bg-{{ $hasAvailability ? 'info' : 'danger' }} ms-1">
+                                                                            Avail: {{ $availability }}
+                                                                        </span>
+                                                                    @endif
+                                                                </small>
                                                             @else
                                                                 <br><small class="text-danger">⚠ No mapping</small>
                                                             @endif
@@ -119,12 +132,20 @@
                                         <span class="badge bg-success">Green</span> = Mapped to Rezgo tour | 
                                         <span class="badge bg-warning">Yellow</span> = No mapping configured
                                     </li>
+                                    <li><strong>Availability:</strong>
+                                        <span class="badge bg-info">Avail: N</span> = How many spots available (shown next to tour name)
+                                        <span class="badge bg-danger">Avail: 0</span> = No availability - choose different tour or date
+                                    </li>
                                     <li>{{ __('Only submit orders where all products have Rezgo mappings') }}</li>
-                                    <li><strong>Tour Date:</strong> Select the date for the tour (must be available on Rezgo)</li>
+                                    <li><strong>Tour Date:</strong> Select a date when the tour has availability (see Avail count)</li>
                                     <li>{{ __('Click "Submit" to send the order to Rezgo API') }}</li>
                                     <li>{{ __('Check the "View Submissions" page to see results and any error messages') }}</li>
                                     <li><strong>Price:</strong> Pricing is managed in Rezgo; $0 in submissions means the booking was recorded without local pricing data</li>
                                 </ul>
+                                <div class="alert alert-info mt-3">
+                                    <strong>Troubleshooting:</strong>
+                                    If you get "Availability Error", the tour has no spots available on that date. Try a different date or different product with a tour that has availability.
+                                </div>
                             </div>
                         </div>
                     </div>

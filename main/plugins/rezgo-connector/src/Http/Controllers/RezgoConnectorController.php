@@ -107,7 +107,8 @@ class RezgoConnectorController extends BaseController
                     'product_name' => $productInfo->name ?? 'Unknown',
                     'quantity' => $product->qty ?? 1,
                     'mapped' => $mapping ? true : false,
-                    'rezgo_tour' => $mapping ? $mapping->rezgo_title ?? $mapping->rezgo_uid : 'N/A',
+                    'rezgo_tour' => $mapping ? $mapping->rezgo_uid : 'N/A',
+                    'rezgo_title' => $mapping ? $mapping->rezgo_title ?? $mapping->rezgo_uid : 'N/A',
                 ];
             }
 
@@ -124,9 +125,31 @@ class RezgoConnectorController extends BaseController
             ->orderBy('name')
             ->get();
 
+        // Fetch availability info from Rezgo
+        $availabilityResponse = $this->api->searchInventory();
+        $tourAvailability = [];
+
+        if ($availabilityResponse['success'] && isset($availabilityResponse['data']['item'])) {
+            $items = $availabilityResponse['data']['item'];
+            if (!is_array($items) || !isset($items[0])) {
+                $items = [$items];
+            }
+            foreach ($items as $item) {
+                $uid = $item['uid'] ?? null;
+                if ($uid) {
+                    $tourAvailability[$uid] = [
+                        'title' => $item['item'] ?? 'Unknown Tour',
+                        'availability' => $item['availability'] ?? $item['avail'] ?? 0,
+                        'starting' => $item['starting'] ?? 'N/A',
+                    ];
+                }
+            }
+        }
+
         return view('rezgo::admin.submit-order', [
             'orders' => $ordersData,
             'products' => $products,
+            'tourAvailability' => $tourAvailability,
         ]);
     }
 
@@ -297,11 +320,11 @@ class RezgoConnectorController extends BaseController
         }
 
         // Build booking data from order
-        $bookingData = [];
         $adultsCount = 0;
         $childrenCount = 0;
         $seniorsCount = 0;
         $tourUid = null;
+        $uniqueTours = [];
 
         foreach ($orderProducts as $product) {
             // Find mapping for this product
@@ -311,13 +334,15 @@ class RezgoConnectorController extends BaseController
                 ->first();
 
             if (!$mapping) {
-                return back()->with('error', __("Product {$product->product_id} ({$product->product_name}) has no Rezgo mapping"));
+                return back()->with('error', __("Product {$product->product_id} has no Rezgo mapping"));
             }
 
             // Use first tour UID found
             if (!$tourUid) {
                 $tourUid = $mapping->rezgo_uid;
             }
+
+            $uniqueTours[] = $mapping->rezgo_uid;
 
             // Count passengers by type
             $qty = (int)($product->qty ?? 1);
@@ -327,6 +352,35 @@ class RezgoConnectorController extends BaseController
                 'senior' => $seniorsCount += $qty,
                 default => $adultsCount += $qty,
             };
+        }
+
+        // Check availability of tours before submitting
+        $inventoryResponse = $this->api->searchInventory();
+        $tourAvailability = [];
+
+        if ($inventoryResponse['success'] && isset($inventoryResponse['data']['item'])) {
+            $items = $inventoryResponse['data']['item'];
+            if (!is_array($items) || !isset($items[0])) {
+                $items = [$items];
+            }
+            foreach ($items as $item) {
+                $uid = $item['uid'] ?? null;
+                if ($uid && in_array($uid, $uniqueTours)) {
+                    $tourAvailability[$uid] = $item['availability'] ?? $item['avail'] ?? 0;
+                }
+            }
+        }
+
+        // Warn about tours with no availability
+        $unavailableTours = [];
+        foreach ($uniqueTours as $uid) {
+            if (!isset($tourAvailability[$uid]) || $tourAvailability[$uid] <= 0) {
+                $unavailableTours[] = $uid;
+            }
+        }
+
+        if (!empty($unavailableTours)) {
+            return back()->with('error', __('The following tours have no availability on ' . $tourDate . ': ' . implode(', ', $unavailableTours) . '. Please try a different date or different product.'));
         }
 
         // Validate passenger counts
