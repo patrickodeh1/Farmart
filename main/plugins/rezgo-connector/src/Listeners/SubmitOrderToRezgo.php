@@ -119,7 +119,7 @@ class SubmitOrderToRezgo
             'book' => $rezgoUid,                         // Use mapped tour or null
             'date' => $bookingDate,
             'agree_terms' => '1',
-            'payment_method' => 'credit_card',
+            'payment_method' => 'Cash',
             'tour_first_name' => $firstName,
             'tour_last_name' => $lastName,
             'tour_address_1' => $addressLine1,

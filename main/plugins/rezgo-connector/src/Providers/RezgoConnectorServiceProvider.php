@@ -16,8 +16,10 @@ class RezgoConnectorServiceProvider extends ServiceProvider
             return new \Botble\RezgoConnector\Services\RezgoSettingsService();
         });
 
-        $this->app->singleton('rezgo.api', function () {
-            return new \Botble\RezgoConnector\Services\RezgoApiService();
+        $this->app->singleton('rezgo.api', function ($app) {
+            return new \Botble\RezgoConnector\Services\RezgoApiService(
+                $app->make(\Botble\RezgoConnector\Services\RezgoSettingsService::class)
+            );
         });
 
         $this->app->singleton('rezgo.logger', function () {
