@@ -80,17 +80,51 @@ class RezgoConnectorController extends BaseController
      */
     public function showSubmitOrderForm(): View
     {
-        $orders = \DB::table('ec_orders')
+        // Fetch orders with customer and product details
+        $orderIds = \DB::table('ec_orders')
             ->orderBy('id', 'desc')
             ->limit(100)
-            ->get();
+            ->pluck('id');
+
+        $ordersData = [];
+        foreach ($orderIds as $orderId) {
+            $order = \DB::table('ec_orders')->where('id', $orderId)->first();
+            $customer = \DB::table('ec_customers')->find($order->user_id);
+            $products = \DB::table('ec_order_product')->where('order_id', $orderId)->get();
+            $mappings = [];
+
+            foreach ($products as $product) {
+                $mapping = \DB::table('rezgo_product_mappings')
+                    ->where('product_id', $product->product_id)
+                    ->where('is_active', true)
+                    ->first();
+
+                $productInfo = \DB::table('ec_products')->where('id', $product->product_id)->first();
+
+                $mappings[] = [
+                    'product_id' => $product->product_id,
+                    'product_name' => $productInfo->name ?? 'Unknown',
+                    'quantity' => $product->qty ?? 1,
+                    'mapped' => $mapping ? true : false,
+                    'rezgo_tour' => $mapping ? $mapping->rezgo_title ?? $mapping->rezgo_uid : 'N/A',
+                ];
+            }
+
+            $ordersData[] = [
+                'id' => $orderId,
+                'customer_name' => $customer ? $customer->name : 'N/A',
+                'total' => $order->final_price ?? $order->total ?? 0,
+                'created_at' => $order->created_at,
+                'products' => $mappings,
+            ];
+        }
 
         $products = \DB::table('ec_products')
             ->orderBy('name')
             ->get();
 
         return view('rezgo::admin.submit-order', [
-            'orders' => $orders,
+            'orders' => $ordersData,
             'products' => $products,
         ]);
     }
