@@ -61,7 +61,7 @@
                                                     {{ $submission->created_at->format('M d, H:i') }}
                                                 </td>
                                                 <td>
-                                                    <a href="{{ route('rezgo.submission-detail', $submission->id) }}" class="btn btn-sm btn-ghost-primary">
+                                                    <a href="{{ route('rezgo.submissions.detail', $submission->id) }}" class="btn btn-sm btn-ghost-primary">
                                                         {{ __('View') }}
                                                     </a>
                                                 </td>
