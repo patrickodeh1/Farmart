@@ -23,20 +23,17 @@ class RezgoApiService
         if (!$this->settings->isConfigured()) {
             $error = 'Rezgo API not configured. Please add CID and API Key in settings.';
             RezgoLog::error('commit_booking', null, $error);
-            return [
-                'success' => false,
-                'error' => $error,
-                'status' => 0,
-            ];
+            return ['success' => false, 'error' => $error, 'status' => 0];
         }
 
         try {
-            $orderId = $bookingData['order_id'] ?? null;
+            $orderId    = $bookingData['order_id'] ?? null;
             $xmlPayload = $this->buildCommitXmlPayload($bookingData);
 
             $logData = $bookingData;
             unset($logData['key']);
             RezgoLog::sync('commit_booking', $orderId, 'Submitting booking via POST XML', $logData);
+            RezgoLog::sync('commit_booking', $orderId, 'XML Payload: ' . $xmlPayload);
 
             $response = Http::timeout(30)
                 ->withHeaders(['Content-Type' => 'application/xml'])
@@ -44,38 +41,38 @@ class RezgoApiService
                 ->post($this->baseUrl);
 
             $responseBody = $response->body();
-            RezgoLog::sync('commit_booking', $orderId, 'Got response: ' . substr($responseBody, 0, 500));
-            
+            RezgoLog::sync('commit_booking', $orderId, 'Raw Rezgo response: ' . $responseBody);
+
             $responseData = $this->parseXmlResponse($responseBody);
 
             if (!is_array($responseData)) {
                 $responseData = ['content' => $responseData];
             }
 
-            // Check for success in XML response - typically status = 1 means success
             $isSuccess = isset($responseData['status']) && $responseData['status'] == 1;
-            
+
             if ($isSuccess) {
                 $transNum = $responseData['trans_num'] ?? $responseData['booking_id'] ?? null;
                 RezgoLog::sync('commit_booking', $orderId, 'Booking successful - Transaction #' . $transNum, ['trans_num' => $transNum]);
                 return [
-                    'success' => true,
-                    'status' => 200,
-                    'data' => $responseData,
+                    'success'   => true,
+                    'status'    => 200,
+                    'data'      => $responseData,
                     'trans_num' => $transNum,
-                    'message' => 'Booking complete'
+                    'message'   => 'Booking complete',
                 ];
             }
 
-            $error = $responseData['error'] ?? $responseData['message'] ?? 'No success status from Rezgo';
+            // Rezgo returns errors in <e> tag, not <error> or <message>
+            $error     = $responseData['e'] ?? $responseData['message'] ?? 'No success status from Rezgo';
             $errorCode = $responseData['error_code'] ?? 'N/A';
-            RezgoLog::error('commit_booking', $orderId, "Booking failed [$errorCode]: " . $error, $responseData);
+            RezgoLog::error('commit_booking', $orderId, "Booking failed [$errorCode]: $error", $responseData);
             return [
-                'success' => false,
-                'status' => $response->status(),
-                'error' => $error,
+                'success'    => false,
+                'status'     => $response->status(),
+                'error'      => $error,
                 'error_code' => $errorCode,
-                'data' => $responseData
+                'data'       => $responseData,
             ];
 
         } catch (\Exception $e) {
@@ -85,70 +82,64 @@ class RezgoApiService
     }
 
     /**
-     * Build XML payload for booking commit
+     * Build XML payload for booking commit.
+     *
+     * FIXED STRUCTURE:
+     * - <booking> block uses <book> for tour UID (NOT <cart><item><uid>)
+     * - <payment> block uses tour_* prefixed field names (NOT <customer>)
+     * - payment_method is "Cash" for test/manual (NOT <type>test</type>)
      */
     private function buildCommitXmlPayload(array $bookingData): string
     {
-        $cid = $this->settings->getCid();
+        $cid    = $this->settings->getCid();
         $apiKey = $this->settings->getApiKey();
-        
-        // Extract data
-        $uid = $bookingData['book'] ?? '';
-        $date = $bookingData['date'] ?? date('Y-m-d');
-        $numAdults = (int)($bookingData['adult_num'] ?? 0);
-        $numChildren = (int)($bookingData['child_num'] ?? 0);
-        $numSeniors = (int)($bookingData['senior_num'] ?? 0);
-        
-        // Contact info
-        $firstName = $bookingData['tour_first_name'] ?? 'Guest';
-        $lastName = $bookingData['tour_last_name'] ?? 'Booking';
-        $email = $bookingData['tour_email_address'] ?? 'test@example.com';
-        $phone = $bookingData['tour_phone_number'] ?? '555-0000';
-        $address = $bookingData['tour_address_1'] ?? '';
-        $city = $bookingData['tour_city'] ?? '';
-        $state = $bookingData['tour_stateprov'] ?? '';
-        $postal = $bookingData['tour_postal_code'] ?? '';
-        $country = $bookingData['tour_country'] ?? 'US';
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
+        $uid         = htmlspecialchars($bookingData['book']               ?? '');
+        $date        = htmlspecialchars($bookingData['date']               ?? date('Y-m-d', strtotime('+1 day')));
+        $numAdults   = (int)($bookingData['adult_num']                     ?? 1);
+        $numChildren = (int)($bookingData['child_num']                     ?? 0);
+        $numSeniors  = (int)($bookingData['senior_num']                    ?? 0);
+
+        $firstName = htmlspecialchars($bookingData['tour_first_name']    ?? 'Dreamzone');
+        $lastName  = htmlspecialchars($bookingData['tour_last_name']     ?? 'Test');
+        $email     = htmlspecialchars($bookingData['tour_email_address'] ?? 'test@dreamzone.com');
+        $phone     = htmlspecialchars($bookingData['tour_phone_number']  ?? '4075550123');
+        $address   = htmlspecialchars($bookingData['tour_address_1']     ?? '123 Main St');
+        $city      = htmlspecialchars($bookingData['tour_city']          ?? 'Orlando');
+        $state     = htmlspecialchars($bookingData['tour_stateprov']     ?? 'FL');
+        $postal    = htmlspecialchars($bookingData['tour_postal_code']   ?? '32801');
+        $country   = htmlspecialchars($bookingData['tour_country']       ?? 'US');
+
+        $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
         $xml .= '<request>' . PHP_EOL;
         $xml .= '  <transcode>' . htmlspecialchars($cid) . '</transcode>' . PHP_EOL;
-        $xml .= '  <key>' . htmlspecialchars($apiKey) . '</key>' . PHP_EOL;
-        $xml .= '  <instruction>commit</instruction>' . PHP_EOL;
-        $xml .= '  <cart>' . PHP_EOL;
-        $xml .= '    <item>' . PHP_EOL;
-        $xml .= '      <uid>' . htmlspecialchars($uid) . '</uid>' . PHP_EOL;
-        $xml .= '      <date>' . htmlspecialchars($date) . '</date>' . PHP_EOL;
-        if ($numAdults > 0) {
-            $xml .= '      <num_adults>' . $numAdults . '</num_adults>' . PHP_EOL;
-        }
-        if ($numChildren > 0) {
-            $xml .= '      <num_children>' . $numChildren . '</num_children>' . PHP_EOL;
-        }
-        if ($numSeniors > 0) {
-            $xml .= '      <num_seniors>' . $numSeniors . '</num_seniors>' . PHP_EOL;
-        }
-        $xml .= '    </item>' . PHP_EOL;
-        $xml .= '  </cart>' . PHP_EOL;
-        
-        // Customer payment/billing info
-        $xml .= '  <customer>' . PHP_EOL;
-        $xml .= '    <first_name>' . htmlspecialchars($firstName) . '</first_name>' . PHP_EOL;
-        $xml .= '    <last_name>' . htmlspecialchars($lastName) . '</last_name>' . PHP_EOL;
-        $xml .= '    <email>' . htmlspecialchars($email) . '</email>' . PHP_EOL;
-        $xml .= '    <phone>' . htmlspecialchars($phone) . '</phone>' . PHP_EOL;
-        if ($address) $xml .= '    <address>' . htmlspecialchars($address) . '</address>' . PHP_EOL;
-        if ($city) $xml .= '    <city>' . htmlspecialchars($city) . '</city>' . PHP_EOL;
-        if ($state) $xml .= '    <province>' . htmlspecialchars($state) . '</province>' . PHP_EOL;
-        if ($postal) $xml .= '    <postal_code>' . htmlspecialchars($postal) . '</postal_code>' . PHP_EOL;
-        if ($country) $xml .= '    <country>' . htmlspecialchars($country) . '</country>' . PHP_EOL;
-        $xml .= '  </customer>' . PHP_EOL;
-        
-        // Special flag - this is test booking, use test payment
+        $xml .= '  <key>'       . htmlspecialchars($apiKey) . '</key>'   . PHP_EOL;
+        $xml .= '  <instruction>commit</instruction>'                     . PHP_EOL;
+
+        // BOOKING block - correct Rezgo field names
+        $xml .= '  <booking>' . PHP_EOL;
+        $xml .= '    <book>' . $uid  . '</book>' . PHP_EOL;
+        $xml .= '    <date>' . $date . '</date>' . PHP_EOL;
+        if ($numAdults > 0)   $xml .= '    <adult_num>'  . $numAdults   . '</adult_num>'  . PHP_EOL;
+        if ($numChildren > 0) $xml .= '    <child_num>'  . $numChildren . '</child_num>'  . PHP_EOL;
+        if ($numSeniors > 0)  $xml .= '    <senior_num>' . $numSeniors  . '</senior_num>' . PHP_EOL;
+        $xml .= '  </booking>' . PHP_EOL;
+
+        // PAYMENT block - customer info uses tour_* prefix, payment_method Cash for test
         $xml .= '  <payment>' . PHP_EOL;
-        $xml .= '    <type>test</type>' . PHP_EOL;
+        $xml .= '    <tour_first_name>'    . $firstName . '</tour_first_name>'    . PHP_EOL;
+        $xml .= '    <tour_last_name>'     . $lastName  . '</tour_last_name>'     . PHP_EOL;
+        $xml .= '    <tour_email_address>' . $email     . '</tour_email_address>' . PHP_EOL;
+        $xml .= '    <tour_phone_number>'  . $phone     . '</tour_phone_number>'  . PHP_EOL;
+        $xml .= '    <tour_address_1>'     . $address   . '</tour_address_1>'     . PHP_EOL;
+        $xml .= '    <tour_city>'          . $city      . '</tour_city>'          . PHP_EOL;
+        $xml .= '    <tour_stateprov>'     . $state     . '</tour_stateprov>'     . PHP_EOL;
+        $xml .= '    <tour_postal_code>'   . $postal    . '</tour_postal_code>'   . PHP_EOL;
+        $xml .= '    <tour_country>'       . $country   . '</tour_country>'       . PHP_EOL;
+        $xml .= '    <payment_method>Cash</payment_method>' . PHP_EOL;
+        $xml .= '    <agree_terms>1</agree_terms>'          . PHP_EOL;
         $xml .= '  </payment>' . PHP_EOL;
-        
+
         $xml .= '</request>' . PHP_EOL;
         return $xml;
     }
@@ -163,26 +154,27 @@ class RezgoApiService
         }
 
         try {
-            $cid = $this->settings->getCid();
+            $cid    = $this->settings->getCid();
             $apiKey = $this->settings->getApiKey();
 
-            $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
+            $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
             $xml .= '<request>' . PHP_EOL;
-            $xml .= '  <transcode>' . htmlspecialchars($cid) . '</transcode>' . PHP_EOL;
-            $xml .= '  <key>' . htmlspecialchars($apiKey) . '</key>' . PHP_EOL;
-            $xml .= '  <instruction>search</instruction>' . PHP_EOL;
+            $xml .= '  <transcode>' . htmlspecialchars($cid)    . '</transcode>' . PHP_EOL;
+            $xml .= '  <key>'       . htmlspecialchars($apiKey) . '</key>'       . PHP_EOL;
+            $xml .= '  <instruction>search</instruction>'                        . PHP_EOL;
             if (isset($filters['filter_type'])) {
                 $xml .= '  <filter_type>' . htmlspecialchars($filters['filter_type']) . '</filter_type>' . PHP_EOL;
             }
             $xml .= '</request>' . PHP_EOL;
 
-            $response = Http::timeout(30)
+            $response     = Http::timeout(30)
                 ->withHeaders(['Content-Type' => 'application/xml'])
                 ->withBody($xml, 'application/xml')
                 ->post($this->baseUrl);
 
             $responseData = $this->parseXmlResponse($response->body());
             return ['success' => !isset($responseData['error']), 'data' => $responseData];
+
         } catch (\Exception $e) {
             RezgoLog::error('search_inventory', null, 'Search failed: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
@@ -199,23 +191,24 @@ class RezgoApiService
         }
 
         try {
-            $cid = $this->settings->getCid();
+            $cid    = $this->settings->getCid();
             $apiKey = $this->settings->getApiKey();
 
-            $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
+            $xml  = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
             $xml .= '<request>' . PHP_EOL;
-            $xml .= '  <transcode>' . htmlspecialchars($cid) . '</transcode>' . PHP_EOL;
-            $xml .= '  <key>' . htmlspecialchars($apiKey) . '</key>' . PHP_EOL;
-            $xml .= '  <instruction>company</instruction>' . PHP_EOL;
+            $xml .= '  <transcode>' . htmlspecialchars($cid)    . '</transcode>' . PHP_EOL;
+            $xml .= '  <key>'       . htmlspecialchars($apiKey) . '</key>'       . PHP_EOL;
+            $xml .= '  <instruction>company</instruction>'                       . PHP_EOL;
             $xml .= '</request>' . PHP_EOL;
 
-            $response = Http::timeout(30)
+            $response     = Http::timeout(30)
                 ->withHeaders(['Content-Type' => 'application/xml'])
                 ->withBody($xml, 'application/xml')
                 ->post($this->baseUrl);
 
             $responseData = $this->parseXmlResponse($response->body());
             return ['success' => !isset($responseData['error']), 'data' => $responseData];
+
         } catch (\Exception $e) {
             RezgoLog::error('get_company', null, 'Failed: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
@@ -249,18 +242,14 @@ class RezgoApiService
 
         $array = [];
 
-        // Check if this node has text content (handles CDATA)
         $text = (string)$xml;
         if (!empty($text) && !trim($xml->asXML(), "<>")) {
             return $text;
         }
 
-        // Process child elements
         foreach ($xml->children() as $name => $child) {
             $value = $this->xmlToArray($child);
-
             if (isset($array[$name])) {
-                // If key already exists, convert to array
                 if (!is_array($array[$name]) || !isset($array[$name][0])) {
                     $array[$name] = [$array[$name]];
                 }
@@ -270,7 +259,6 @@ class RezgoApiService
             }
         }
 
-        // Handle attributes
         if ($xml->attributes()) {
             foreach ($xml->attributes() as $name => $value) {
                 $array['@' . $name] = (string)$value;
