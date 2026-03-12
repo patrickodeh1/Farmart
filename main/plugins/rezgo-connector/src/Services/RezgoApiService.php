@@ -31,61 +31,6 @@ class RezgoApiService
         }
 
         try {
-            // Build XML request payload
-            $orderId = $bookingData['order_id'] ?? null;
-            
-            $xmlPayload = $this->buildCommitXmlPayload($bookingData);
-
-            // Log request (without sensitive data)
-            $logData = $bookingData;
-            unset($logData['key']);
-            RezgoLog::sync('commit_booking', $orderId, 'Submitting booking via POST XML', $logData);
-
-            // Send POST request with XML
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Content-Type' => 'application/xml',
-                    'Accept' => 'application/json',
-                ])
-                ->post($this->baseUrl, $xmlPayload);
-
-            $responseData = $response->json();
-
-            // Check if booking was successful
-            if ($response->successful() && isset($responseData['status']) && $responseData['status'] == 1) {
-                $transNum = $responseData['trans_num'] ?? $responseData['booking_id'] ?? null;
-                
-                RezgoLog::sync(
-                    'commit_booking',
-<?php
-
-namespace Botble\RezgoConnector\Services;
-
-use Illuminate\Support\Facades\Http;
-use Botble\RezgoConnector\Models\RezgoLog;
-
-class RezgoApiService
-{
-    private RezgoSettingsService $settings;
-    private string $baseUrl = 'https://api.rezgo.com/xml';
-
-    public function __construct(RezgoSettingsService $settings)
-    {
-        $this->settings = $settings;
-    }
-
-    /**
-     * Commit a booking to Rezgo via POST XML
-     */
-    public function commitBooking(array $bookingData): array
-    {
-        if (!$this->settings->isConfigured()) {
-            $error = 'Rezgo API not configured. Please add CID and API Key in settings.';
-            RezgoLog::error('commit_booking', null, $error);
-            return ['success' => false, 'error' => $error, 'status' => 0];
-        }
-
-        try {
             $orderId = $bookingData['order_id'] ?? null;
             $xmlPayload = $this->buildCommitXmlPayload($bookingData);
 
@@ -102,13 +47,25 @@ class RezgoApiService
             if ($response->successful() && isset($responseData['status']) && $responseData['status'] == 1) {
                 $transNum = $responseData['trans_num'] ?? $responseData['booking_id'] ?? null;
                 RezgoLog::sync('commit_booking', $orderId, 'Booking successful - Transaction #' . $transNum, ['trans_num' => $transNum]);
-                return ['success' => true, 'status' => 200, 'data' => $responseData, 'trans_num' => $transNum, 'message' => 'Booking complete'];
+                return [
+                    'success' => true,
+                    'status' => 200,
+                    'data' => $responseData,
+                    'trans_num' => $transNum,
+                    'message' => 'Booking complete'
+                ];
             }
 
             $error = $responseData['error'] ?? $responseData['message'] ?? 'Unknown error from Rezgo';
             $errorCode = $responseData['error_code'] ?? 'N/A';
             RezgoLog::error('commit_booking', $orderId, "Booking failed [$errorCode]: " . $error, $responseData);
-            return ['success' => false, 'status' => $response->status(), 'error' => $error, 'error_code' => $errorCode, 'data' => $responseData];
+            return [
+                'success' => false,
+                'status' => $response->status(),
+                'error' => $error,
+                'error_code' => $errorCode,
+                'data' => $responseData
+            ];
 
         } catch (\Exception $e) {
             RezgoLog::error('commit_booking', $bookingData['order_id'] ?? null, 'API request failed: ' . $e->getMessage());
