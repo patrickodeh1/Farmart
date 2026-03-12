@@ -148,7 +148,11 @@
                         <label class="form-label">{{ __('Product') }}</label>
                         <select class="form-control" name="product_id" required>
                             <option value="">{{ __('Select a product') }}</option>
-                            {{-- Load products dynamically if available --}}
+                            @forelse ($products as $product)
+                                <option value="{{ $product->id }}">{{ $product->name }}</option>
+                            @empty
+                                <option disabled>{{ __('No products available') }}</option>
+                            @endforelse
                         </select>
                     </div>
 

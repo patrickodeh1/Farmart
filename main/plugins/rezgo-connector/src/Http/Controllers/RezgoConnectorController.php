@@ -76,12 +76,36 @@ class RezgoConnectorController extends BaseController
     }
 
     /**
+     * Show submit order form
+     */
+    public function showSubmitOrderForm(): View
+    {
+        $orders = \DB::table('ec_orders')
+            ->orderBy('id', 'desc')
+            ->limit(100)
+            ->get();
+
+        $products = \DB::table('ec_products')
+            ->orderBy('name')
+            ->get();
+
+        return view('rezgo::admin.submit-order', [
+            'orders' => $orders,
+            'products' => $products,
+        ]);
+    }
+
+    /**
      * View product mappings
      */
     public function productMappings(): View
     {
         $mappings = RezgoProductMapping::with('product')
             ->paginate(20);
+
+        $products = \DB::table('ec_products')
+            ->orderBy('name')
+            ->get();
 
         $inventoryResponse = $this->api->searchInventory();
         $rezgoTours = [];
@@ -96,6 +120,7 @@ class RezgoConnectorController extends BaseController
 
         return view('rezgo::admin.product-mappings', [
             'mappings' => $mappings,
+            'products' => $products,
             'rezgoTours' => $rezgoTours,
         ]);
     }
