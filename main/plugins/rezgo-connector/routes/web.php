@@ -10,6 +10,7 @@ AdminHelper::registerRoutes(function (): void {
         Route::post('/settings', [RezgoConnectorController::class, 'updateSettings'])->name('settings.update');
         Route::get('/test-connection', [RezgoConnectorController::class, 'testConnection'])->name('test-connection');
         Route::get('/sync-inventory', [RezgoConnectorController::class, 'syncInventory'])->name('sync-inventory');
+        Route::post('/submit-order', [RezgoConnectorController::class, 'submitOrder'])->name('submit-order');
 
         Route::prefix('submissions')
             ->as('submissions.')

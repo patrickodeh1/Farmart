@@ -187,4 +187,126 @@ class RezgoConnectorController extends BaseController
 
         return back()->with('success', __('Inventory synced successfully'));
     }
+
+    /**
+     * Submit an order to Rezgo
+     */
+    public function submitOrder(\Illuminate\Http\Request $request): RedirectResponse
+    {
+        $orderId = $request->input('order_id');
+        if (!$orderId) {
+            return back()->with('error', __('Order ID required'));
+        }
+
+        // Fetch order
+        $order = \DB::table('ec_orders')->where('id', $orderId)->first();
+        if (!$order) {
+            return back()->with('error', __('Order not found'));
+        }
+
+        // Fetch order products
+        $orderProducts = \DB::table('ec_order_product')
+            ->where('order_id', $orderId)
+            ->get();
+
+        if ($orderProducts->isEmpty()) {
+            return back()->with('error', __('Order has no products'));
+        }
+
+        // Fetch customer info
+        $customer = \DB::table('ec_customers')->find($order->user_id);
+
+        if (!$customer) {
+            return back()->with('error', __('Customer not found'));
+        }
+
+        // Build booking data from order
+        $bookingData = [];
+        $adultsCount = 0;
+        $childrenCount = 0;
+        $seniorsCount = 0;
+        $tourUid = null;
+
+        foreach ($orderProducts as $product) {
+            // Find mapping for this product
+            $mapping = \DB::table('rezgo_product_mappings')
+                ->where('product_id', $product->product_id)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$mapping) {
+                return back()->with('error', __("Product {$product->product_id} ({$product->product_name}) has no Rezgo mapping"));
+            }
+
+            // Use first tour UID found
+            if (!$tourUid) {
+                $tourUid = $mapping->rezgo_uid;
+            }
+
+            // Count passengers by type
+            $qty = (int)($product->qty ?? 1);
+            match ($mapping->passenger_type) {
+                'adult' => $adultsCount += $qty,
+                'child' => $childrenCount += $qty,
+                'senior' => $seniorsCount += $qty,
+                default => $adultsCount += $qty,
+            };
+        }
+
+        // Prepare booking data
+        $bookingData = [
+            'order_id' => $orderId,
+            'book' => $tourUid,
+            'date' => date('Y-m-d', strtotime('+1 day')), // Tomorrow as default
+            'adult_num' => $adultsCount,
+            'child_num' => $childrenCount,
+            'senior_num' => $seniorsCount,
+            'tour_first_name' => $customer->name ?? 'Customer',
+            'tour_last_name' => 'Order-' . $orderId,
+            'tour_email_address' => $customer->email ?? 'noemail@test.com',
+            'tour_phone_number' => $customer->phone ?? '555-0000',
+            'tour_address_1' => $customer->address ?? '123 Main St',
+            'tour_city' => $customer->city ?? 'Orlando',
+            'tour_stateprov' => $customer->province ?? 'FL',
+            'tour_country' => $customer->country ?? 'US',
+            'tour_postal_code' => $customer->zip_code ?? '12345',
+            'payment_method' => 'Credit Cards',
+        ];
+
+        // Submit to Rezgo
+        $response = $this->api->commitBooking($bookingData);
+
+        if ($response['success']) {
+            $transNum = $response['trans_num'] ?? null;
+
+            // Save submission record
+            RezgoSubmission::updateOrCreate(
+                ['order_id' => $orderId],
+                [
+                    'status' => 'success',
+                    'rezgo_booking_id' => $transNum,
+                    'request_payload' => json_encode($bookingData),
+                    'response_payload' => json_encode($response['data'] ?? []),
+                    'http_status' => 201,
+                ]
+            );
+
+            $message = __("Order submitted to Rezgo successfully! Transaction: {$transNum}");
+            return back()->with('success', $message);
+        } else {
+            // Save failed submission
+            RezgoSubmission::updateOrCreate(
+                ['order_id' => $orderId],
+                [
+                    'status' => 'failed',
+                    'request_payload' => json_encode($bookingData),
+                    'response_payload' => json_encode($response),
+                    'http_status' => $response['status'] ?? 500,
+                    'error_message' => $response['error'] ?? 'Unknown error',
+                ]
+            );
+
+            return back()->with('error', __('Submission failed: ' . $response['error']));
+        }
+    }
 }
