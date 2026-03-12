@@ -2,7 +2,7 @@
 
 namespace Botble\RezgoConnector\Providers;
 
-use Botble\Core\Supports\ServiceProvider;
+use Illuminate\Support\ServiceProvider;
 use Botble\Ecommerce\Events\OrderPlacedEvent;
 use Botble\RezgoConnector\Listeners\SubmitOrderToRezgo;
 use Illuminate\Support\Facades\Event;
