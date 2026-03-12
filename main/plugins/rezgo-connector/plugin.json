@@ -1,6 +1,6 @@
 {
   "name": "Rezgo Connector",
-  "namespace": "Botble\\RezgoConnector",
+  "namespace": "Botble\\RezgoConnector\\",
   "version": "1.0.0",
   "author": "Farmart Development Team",
   "url": "https://github.com/patrickodeh1/Farmart",
