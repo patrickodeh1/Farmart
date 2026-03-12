@@ -47,6 +47,7 @@
                                             <th>{{ __('Products') }}</th>
                                             <th>{{ __('Total') }}</th>
                                             <th>{{ __('Date') }}</th>
+                                            <th>{{ __('Tour Date') }}</th>
                                             <th>{{ __('Action') }}</th>
                                         </tr>
                                     </thead>
@@ -85,6 +86,7 @@
                                                 <form action="{{ route('rezgo.submit-order') }}" method="POST" style="display: inline;">
                                                     @csrf
                                                     <input type="hidden" name="order_id" value="{{ $order['id'] }}">
+                                                    <input type="date" name="tour_date" class="form-control form-control-sm" value="{{ \Carbon\Carbon::now()->addDay()->format('Y-m-d') }}" min="{{ \Carbon\Carbon::now()->format('Y-m-d') }}" required style="max-width: 150px; display: inline-block;">
                                                     <button type="submit" class="btn btn-sm btn-primary">
                                                         {{ __('Submit') }}
                                                     </button>
@@ -118,8 +120,10 @@
                                         <span class="badge bg-warning">Yellow</span> = No mapping configured
                                     </li>
                                     <li>{{ __('Only submit orders where all products have Rezgo mappings') }}</li>
+                                    <li><strong>Tour Date:</strong> Select the date for the tour (must be available on Rezgo)</li>
                                     <li>{{ __('Click "Submit" to send the order to Rezgo API') }}</li>
-                                    <li>{{ __('Check the "View Submissions" page to see results') }}</li>
+                                    <li>{{ __('Check the "View Submissions" page to see results and any error messages') }}</li>
+                                    <li><strong>Price:</strong> Pricing is managed in Rezgo; $0 in submissions means the booking was recorded without local pricing data</li>
                                 </ul>
                             </div>
                         </div>

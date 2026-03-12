@@ -6,6 +6,7 @@ use Botble\Base\Http\Controllers\BaseController;
 use Botble\RezgoConnector\Http\Requests\UpdateRezgoSettingsRequest;
 use Botble\RezgoConnector\Models\{RezgoSubmission, RezgoProductMapping, RezgoLog};
 use Botble\RezgoConnector\Services\{RezgoSettingsService, RezgoApiService};
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -253,8 +254,24 @@ class RezgoConnectorController extends BaseController
     public function submitOrder(\Illuminate\Http\Request $request): RedirectResponse
     {
         $orderId = $request->input('order_id');
+        $tourDate = $request->input('tour_date');
+
         if (!$orderId) {
             return back()->with('error', __('Order ID required'));
+        }
+
+        if (!$tourDate) {
+            return back()->with('error', __('Tour date required'));
+        }
+
+        // Validate date format and is future
+        try {
+            $bookingDate = Carbon::createFromFormat('Y-m-d', $tourDate);
+            if ($bookingDate->isPast()) {
+                return back()->with('error', __('Tour date must be in the future'));
+            }
+        } catch (\Exception $e) {
+            return back()->with('error', __('Invalid tour date format'));
         }
 
         // Fetch order
@@ -312,11 +329,16 @@ class RezgoConnectorController extends BaseController
             };
         }
 
-        // Prepare booking data
+        // Validate passenger counts
+        if ($adultsCount < 1) {
+            return back()->with('error', __('At least one adult passenger is required'));
+        }
+
+        // Prepare booking data with selected tour date
         $bookingData = [
             'order_id' => $orderId,
             'book' => $tourUid,
-            'date' => date('Y-m-d', strtotime('+1 day')), // Tomorrow as default
+            'date' => $tourDate,
             'adult_num' => $adultsCount,
             'child_num' => $childrenCount,
             'senior_num' => $seniorsCount,
@@ -354,6 +376,10 @@ class RezgoConnectorController extends BaseController
             return back()->with('success', $message);
         } else {
             // Save failed submission
+            $errorMessage = $response['error'] ?? 'Unknown error';
+            $errorCode = $response['error_code'] ?? '';
+            $fullError = $errorMessage . ($errorCode ? " [$errorCode]" : '');
+
             RezgoSubmission::updateOrCreate(
                 ['order_id' => $orderId],
                 [
@@ -361,11 +387,11 @@ class RezgoConnectorController extends BaseController
                     'request_payload' => json_encode($bookingData),
                     'response_payload' => json_encode($response),
                     'http_status' => $response['status'] ?? 500,
-                    'error_message' => $response['error'] ?? 'Unknown error',
+                    'error_message' => $fullError,
                 ]
             );
 
-            return back()->with('error', __('Submission failed: ' . $response['error']));
+            return back()->with('error', __('Submission failed: ' . $fullError));
         }
     }
 }
