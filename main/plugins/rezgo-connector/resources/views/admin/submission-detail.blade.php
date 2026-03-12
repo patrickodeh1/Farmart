@@ -10,7 +10,7 @@
                         <h2 class="page-title">{{ __('Submission Details') }} #{{ $submission->order_id }}</h2>
                     </div>
                     <div class="col-auto">
-                        <a href="{{ route('rezgo.submissions') }}" class="btn btn-link">{{ __('Back to Submissions') }}</a>
+                        <a href="{{ route('rezgo.submissions.index') }}" class="btn btn-link">{{ __('Back to Submissions') }}</a>
                     </div>
                 </div>
             </div>
