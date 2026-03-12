@@ -242,13 +242,8 @@ class RezgoApiService
 
         $array = [];
 
-        $text = (string)$xml;
-        if (!empty($text) && !trim($xml->asXML(), "<>")) {
-            return $text;
-        }
-
         foreach ($xml->children() as $name => $child) {
-            $value = $this->xmlToArray($child);
+            $value = trim((string)$child) ?: $this->xmlToArray($child);
             if (isset($array[$name])) {
                 if (!is_array($array[$name]) || !isset($array[$name][0])) {
                     $array[$name] = [$array[$name]];
@@ -265,7 +260,7 @@ class RezgoApiService
             }
         }
 
-        return $array ?: '';
+        return $array ?: (string)$xml;
     }
 }
 
