@@ -1,4 +1,4 @@
-@extends('base::layouts.master')
+@extends('core/base::layouts/master)
 
 @section('content')
 <div class="container-xl">
