@@ -9,7 +9,8 @@
                     <div class="col">
                         <h2 class="page-title">{{ __('Rezgo Submissions') }}</h2>
                     </div>
-                    <div class="col-auto">
+                    <div class="col-auto d-flex gap-2">
+                        <a href="{{ route('rezgo.submit-order.form') }}" class="btn btn-info">{{ __('Submit Order') }}</a>
                         <a href="{{ route('rezgo.index') }}" class="btn btn-link">{{ __('Back to Settings') }}</a>
                     </div>
                 </div>
