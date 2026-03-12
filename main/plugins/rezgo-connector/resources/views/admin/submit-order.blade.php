@@ -46,8 +46,8 @@
                                         <select class="form-control" name="order_id" required id="orderSelect" onchange="updateOrderDetails()">
                                             <option value="">{{ __('Select an order...') }}</option>
                                             @foreach ($orders as $order)
-                                                <option value="{{ $order->id }}" data-total="{{ $order->total }}">
-                                                    Order #{{ $order->id }} - {{ \Carbon\Carbon::parse($order->created_at)->format('M d, Y') }} - ${{ number_format($order->total, 2) }}
+                                                <option value="{{ $order->id }}" data-total="{{ $order->final_price ?? $order->total ?? 0 }}">
+                                                    Order #{{ $order->id }} - {{ \Carbon\Carbon::parse($order->created_at)->format('M d, Y') }} - ${{ number_format($order->final_price ?? $order->total ?? 0, 2) }}
                                                 </option>
                                             @endforeach
                                         </select>
@@ -118,7 +118,7 @@
                                                 {{ \Carbon\Carbon::parse($order->created_at)->format('M d, Y H:i') }}
                                             </td>
                                             <td>
-                                                ${{ number_format($order->total, 2) }}
+                                                ${{ number_format($order->final_price ?? $order->total ?? 0, 2) }}
                                             </td>
                                             <td>
                                                 <form action="{{ route('rezgo.submit-order') }}" method="POST" style="display: inline;">
