@@ -13,9 +13,7 @@
     "tickets",
     "tours"
   ],
-  "providers": [
-    "Botble\\RezgoConnector\\Providers\\RezgoConnectorServiceProvider"
-  ],
+  "provider": "Botble\\RezgoConnector\\Providers\\RezgoConnectorServiceProvider",
   "minimum_core_version": "5.0.0",
   "require": []
 }
