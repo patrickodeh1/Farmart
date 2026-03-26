@@ -1,2 +1,0 @@
-<?php echo $__env->make('plugins/ecommerce::themes.order-tracking', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-<?php /**PATH /var/www/html/platform/themes/farmart/views/ecommerce/order-tracking.blade.php ENDPATH**/ ?>
