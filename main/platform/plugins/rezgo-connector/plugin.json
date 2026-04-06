@@ -1,4 +1,5 @@
 {
+  "id": "rezgo-connector",
   "name": "Rezgo Connector",
   "namespace": "Botble\\RezgoConnector\\",
   "version": "1.0.0",
