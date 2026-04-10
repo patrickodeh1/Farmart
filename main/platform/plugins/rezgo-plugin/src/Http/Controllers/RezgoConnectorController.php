@@ -223,6 +223,7 @@ class RezgoConnectorController extends BaseController
             // Update existing mapping
             $mapping = RezgoProductMapping::findOrFail($request->mapping_id);
             $mapping->update([
+                'product_id' => $request->product_id,
                 'rezgo_uid' => $request->rezgo_uid,
                 'rezgo_title' => $request->rezgo_title,
                 'passenger_type' => $request->passenger_type,
@@ -469,17 +470,42 @@ class RezgoConnectorController extends BaseController
         }
 
         try {
-            // Create draft product
+            // Check if product already exists with this title
+            $existingProduct = \Botble\Ecommerce\Models\Product::where('name', $rezgoTitle)->first();
+            if ($existingProduct) {
+                // Create mapping for existing product
+                RezgoProductMapping::updateOrCreate(
+                    ['product_id' => $existingProduct->id],
+                    [
+                        'rezgo_uid' => $rezgoUid,
+                        'rezgo_title' => $rezgoTitle,
+                        'passenger_type' => 'adult',
+                        'is_active' => true,
+                    ]
+                );
+                return back()->with('success', __('Mapped to existing product: :name', ['name' => $rezgoTitle]));
+            }
+
+            // Create new draft product with correct fields
             $product = new \Botble\Ecommerce\Models\Product();
             $product->name = $rezgoTitle;
-            $product->slug = \Illuminate\Support\Str::slug($rezgoTitle) . '-' . time();
+            $product->description = __('Auto-imported from Rezgo inventory UID: :uid', ['uid' => $rezgoUid]);
+            $product->content = __('Booking details will be added after product activation.');
             $product->status = 'draft';
             $product->is_variation = false;
-            $product->manage_stock = false;
-            $product->public_price = 0;
+            $product->sku = 'REZGO-' . $rezgoUid;
+            $product->price = 0;
+            $product->quantity = 1;
+            $product->weight = 0;
+            $product->wide = 0;  // Note: uses 'wide' not 'width'
+            $product->height = 0;
+            $product->length = 0;
+            $product->tax_id = null;
+            $product->store_id = 1;
+            
             $product->save();
 
-            // Auto-create mapping
+            // Create mapping
             RezgoProductMapping::create([
                 'product_id' => $product->id,
                 'rezgo_uid' => $rezgoUid,
@@ -488,10 +514,11 @@ class RezgoConnectorController extends BaseController
                 'is_active' => true,
             ]);
 
-            $message = __('Product imported as draft and mapped successfully: :name', ['name' => $rezgoTitle]);
-            return back()->with('success', $message);
+            return back()->with('success', __('✅ Successfully created draft product: :name. Check the Products section to publish.', 
+                ['name' => $rezgoTitle]));
         } catch (\Exception $e) {
-            return back()->with('error', __('Failed to import product: ' . $e->getMessage()));
+            \Log::error('Rezgo import-as-draft error: ' . $e->getMessage() . ' [' . $e->getFile() . ':' . $e->getLine() . '] Trace: ' . $e->getTraceAsString());
+            return back()->with('error', __('❌ Import failed: ') . $e->getMessage());
         }
     }
 }

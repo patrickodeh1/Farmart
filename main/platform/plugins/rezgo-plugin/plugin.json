@@ -4,7 +4,7 @@
   "namespace": "Botble\\RezgoConnector\\",
   "version": "1.0.0",
   "author": "Patrick Odeh",
-  "url": "https://github.com/patrickodeh1/",
+  "url": "https://soarer.xyz/",
   "description": "Automated real-time integration between Farmart eCommerce and Rezgo Booking API. Synchronizes orders, products, and booking data seamlessly.",
   "keywords": [
     "rezgo",

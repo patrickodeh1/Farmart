@@ -10,7 +10,12 @@
                         <h2 class="page-title">{{ __('Product Mappings') }}</h2>
                     </div>
                     <div class="col-auto">
-                        <a href="{{ route('rezgo.index') }}" class="btn btn-link">{{ __('Back to Settings') }}</a>
+                        <div class="btn-group" role="group">
+                            <a href="{{ route('rezgo.index') }}" class="btn btn-link">{{ __('Settings') }}</a>
+                            <a href="{{ route('rezgo.submit-order.form') }}" class="btn btn-link">{{ __('Submit Order') }}</a>
+                            <a href="{{ route('rezgo.submissions.index') }}" class="btn btn-link">{{ __('Submissions') }}</a>
+                            <a href="{{ route('rezgo.logs.index') }}" class="btn btn-link">{{ __('Logs') }}</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -21,6 +26,13 @@
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}
+                        <a class="btn-close" data-bs-dismiss="alert"></a>
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
                         <a class="btn-close" data-bs-dismiss="alert"></a>
                     </div>
                 @endif
@@ -194,11 +206,14 @@
 
 <script>
 function setTourData(uid, title, option = '') {
-    // Clear editing mode
+    // New mapping mode
     document.getElementById('mappingId').value = '';
-    // Clear product select for new mapping
     document.getElementById('productSelect').value = '';
-    document.getElementById('productSelect').disabled = false;
+    
+    // Clear and enable fields
+    document.getElementById('rezgoUid').removeAttribute('disabled');
+    document.getElementById('rezgoTitle').removeAttribute('disabled');
+    document.getElementById('passengerType').removeAttribute('disabled');
     
     document.getElementById('rezgoUid').value = uid;
     document.getElementById('rezgoTitle').value = title + (option ? ' — ' + option : '');
@@ -206,15 +221,31 @@ function setTourData(uid, title, option = '') {
 }
 
 function setMappingData(mappingId, productId, uid, title, passengerType) {
-    // Set editing mode
+    // Edit mapping mode
     document.getElementById('mappingId').value = mappingId;
     document.getElementById('productSelect').value = productId;
-    document.getElementById('productSelect').disabled = true; // Disable product selection when editing
+    
+    // Remove any disabled attributes
+    document.getElementById('productSelect').removeAttribute('disabled');
+    document.getElementById('passengerType').removeAttribute('disabled');
+    document.getElementById('rezgoUid').removeAttribute('disabled');
+    document.getElementById('rezgoTitle').removeAttribute('disabled');
     
     document.getElementById('rezgoUid').value = uid;
     document.getElementById('rezgoTitle').value = title;
     document.getElementById('rezgoOption').value = '';
     document.getElementById('passengerType').value = passengerType;
 }
+
+// Reset form when modal is closed
+document.addEventListener('DOMContentLoaded', function() {
+    const mapModal = document.getElementById('mapModal');
+    if (mapModal) {
+        mapModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('mappingId').value = '';
+        });
+    }
+});
+</script>
 </script>
 @endsection
