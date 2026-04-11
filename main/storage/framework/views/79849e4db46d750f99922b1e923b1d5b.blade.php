@@ -1,1 +1,0 @@
-<i class="fas fa-users me-n2 me-n2" style="opacity: .1; --bb-icon-size: 80px;"></i>

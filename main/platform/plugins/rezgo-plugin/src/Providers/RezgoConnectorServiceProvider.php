@@ -54,18 +54,20 @@ class RezgoConnectorServiceProvider extends ServiceProvider
         // Register event listener
         Event::listen(OrderPlacedEvent::class, SubmitOrderToRezgo::class);
 
-        // Register admin menu
-        DashboardMenu::default()->beforeRetrieving(function (): void {
-            DashboardMenu::make()
-                ->registerItem(
-                    DashboardMenuItem::make()
-                        ->id('rezgo-connector')
-                        ->priority(50)
-                        ->icon('ti ti-packages')
-                        ->name('rezgo::messages.rezgo_connector')
-                        ->route('rezgo.index')
-                );
-        });
+        // Register admin menu item if DashboardMenu is available
+        if (class_exists('\Botble\Base\Facades\DashboardMenu')) {
+            DashboardMenu::default()->beforeRetrieving(function (): void {
+                DashboardMenu::make()
+                    ->registerItem(
+                        DashboardMenuItem::make()
+                            ->id('rezgo-connector')
+                            ->priority(50)
+                            ->icon('ti ti-packages')
+                            ->name('rezgo::messages.rezgo_connector')
+                            ->route('rezgo.index')
+                    );
+            });
+        }
 
         // Register commands
         if ($this->app->runningInConsole()) {
