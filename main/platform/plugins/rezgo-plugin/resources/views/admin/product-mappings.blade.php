@@ -41,14 +41,14 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="table-responsive">
-                                <table class="table table-vcenter">
+                                <table class="table table-vcenter table-hover">
                                     <thead>
                                         <tr>
                                             <th>{{ __('Product') }}</th>
-                                            <th>{{ __('Rezgo Inventory') }}</th>
+                                            <th style="width: 40%;">{{ __('Rezgo Inventory') }}</th>
                                             <th>{{ __('Passenger Type') }}</th>
                                             <th>{{ __('Status') }}</th>
-                                            <th>{{ __('Actions') }}</th>
+                                            <th style="width: 150px;">{{ __('Actions') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -57,8 +57,8 @@
                                                 <td>
                                                     <strong>{{ $mapping->product->name ?? 'N/A' }}</strong>
                                                 </td>
-                                                <td>
-                                                    {{ $mapping->rezgo_title ?? '—' }}
+                                                <td style="word-break: break-word;">
+                                                    <small>{{ $mapping->rezgo_title ?? '—' }}</small>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-info">{{ ucfirst($mapping->passenger_type) }}</span>
@@ -69,16 +69,18 @@
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#mapModal" onclick="setMappingData({{ $mapping->id }}, {{ $mapping->product_id }}, '{{ $mapping->rezgo_uid }}', '{{ $mapping->rezgo_title }}', '{{ $mapping->passenger_type }}')">
-                                                        {{ __('Edit') }}
-                                                    </button>
-                                                    <form action="{{ route('rezgo.product-mappings.delete', $mapping->id) }}" method="POST" style="display: inline;">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-ghost-danger" onclick="return confirm('{{ __('Are you sure?') }}')">
-                                                            {{ __('Delete') }}
+                                                    <div class="btn-group gap-1" role="group">
+                                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#mapModal" onclick="setMappingData({{ $mapping->id }}, {{ $mapping->product_id }}, '{{ $mapping->rezgo_uid }}', '{{ $mapping->rezgo_title }}', '{{ $mapping->passenger_type }}')" title="{{ __('Edit mapping') }}">
+                                                            ✏️
                                                         </button>
-                                                    </form>
+                                                        <form action="{{ route('rezgo.product-mappings.delete', $mapping->id) }}" method="POST" style="display: inline;">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-sm btn-ghost-danger" onclick="return confirm('{{ __('Are you sure?') }}')" title="{{ __('Delete mapping') }}">
+                                                                🗑️
+                                                            </button>
+                                                        </form>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @empty
@@ -176,12 +178,12 @@
 
                     <div class="mb-3">
                         <label class="form-label">{{ __('Rezgo Inventory UID') }}</label>
-                        <input type="text" class="form-control" name="rezgo_uid" id="rezgoUid" readonly>
+                        <input type="text" class="form-control" name="rezgo_uid" id="rezgoUid">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">{{ __('Rezgo Inventory Title') }}</label>
-                        <input type="text" class="form-control" name="rezgo_title" id="rezgoTitle" readonly>
+                        <input type="text" class="form-control" name="rezgo_title" id="rezgoTitle">
                     </div>
 
                     <input type="hidden" id="rezgoOption" name="rezgo_option">
@@ -206,35 +208,39 @@
 
 <script>
 function setTourData(uid, title, option = '') {
-    // New mapping mode
-    document.getElementById('mappingId').value = '';
-    document.getElementById('productSelect').value = '';
-    
-    // Clear and enable fields
-    document.getElementById('rezgoUid').removeAttribute('disabled');
-    document.getElementById('rezgoTitle').removeAttribute('disabled');
-    document.getElementById('passengerType').removeAttribute('disabled');
-    
-    document.getElementById('rezgoUid').value = uid;
-    document.getElementById('rezgoTitle').value = title + (option ? ' — ' + option : '');
-    document.getElementById('rezgoOption').value = option;
+    // New mapping mode - populate fields when modal opens
+    const mapModal = document.getElementById('mapModal');
+    if (mapModal) {
+        const bsModal = bootstrap.Modal.getInstance(mapModal) || new bootstrap.Modal(mapModal);
+        
+        mapModal.addEventListener('shown.bs.modal', function populateNewMapping() {
+            document.getElementById('mappingId').value = '';
+            document.getElementById('productSelect').value = '';
+            document.getElementById('rezgoUid').value = uid || '';
+            document.getElementById('rezgoTitle').value = (title || '') + (option ? ' — ' + option : '');
+            document.getElementById('rezgoOption').value = option || '';
+            document.getElementById('passengerType').value = 'adult';
+            mapModal.removeEventListener('shown.bs.modal', populateNewMapping);
+        }, { once: true });
+    }
 }
 
 function setMappingData(mappingId, productId, uid, title, passengerType) {
-    // Edit mapping mode
-    document.getElementById('mappingId').value = mappingId;
-    document.getElementById('productSelect').value = productId;
-    
-    // Remove any disabled attributes
-    document.getElementById('productSelect').removeAttribute('disabled');
-    document.getElementById('passengerType').removeAttribute('disabled');
-    document.getElementById('rezgoUid').removeAttribute('disabled');
-    document.getElementById('rezgoTitle').removeAttribute('disabled');
-    
-    document.getElementById('rezgoUid').value = uid;
-    document.getElementById('rezgoTitle').value = title;
-    document.getElementById('rezgoOption').value = '';
-    document.getElementById('passengerType').value = passengerType;
+    // Edit mapping mode - populate fields when modal opens
+    const mapModal = document.getElementById('mapModal');
+    if (mapModal) {
+        const bsModal = bootstrap.Modal.getInstance(mapModal) || new bootstrap.Modal(mapModal);
+        
+        mapModal.addEventListener('shown.bs.modal', function populateEditMapping() {
+            document.getElementById('mappingId').value = mappingId || '';
+            document.getElementById('productSelect').value = productId || '';
+            document.getElementById('rezgoUid').value = uid || '';
+            document.getElementById('rezgoTitle').value = title || '';
+            document.getElementById('rezgoOption').value = '';
+            document.getElementById('passengerType').value = passengerType || 'adult';
+            mapModal.removeEventListener('shown.bs.modal', populateEditMapping);
+        }, { once: true });
+    }
 }
 
 // Reset form when modal is closed

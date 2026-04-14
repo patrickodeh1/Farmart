@@ -5,7 +5,8 @@ namespace Botble\RezgoConnector\Http\Controllers;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\RezgoConnector\Http\Requests\UpdateRezgoSettingsRequest;
 use Botble\RezgoConnector\Models\{RezgoSubmission, RezgoProductMapping, RezgoLog};
-use Botble\RezgoConnector\Services\{RezgoSettingsService, RezgoApiService};
+use Botble\RezgoConnector\Services\{RezgoSettingsService, RezgoApiService, ExternalDatabaseSyncService, ExternalDatabaseConfigService};
+use Botble\Setting\Facades\Setting;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -14,11 +15,13 @@ class RezgoConnectorController extends BaseController
 {
     private RezgoSettingsService $settings;
     private RezgoApiService $api;
+    private ExternalDatabaseSyncService $externalSync;
 
-    public function __construct(RezgoSettingsService $settings, RezgoApiService $api)
+    public function __construct(RezgoSettingsService $settings, RezgoApiService $api, ExternalDatabaseSyncService $externalSync)
     {
         $this->settings = $settings;
         $this->api = $api;
+        $this->externalSync = $externalSync;
     }
 
     /**
@@ -219,6 +222,8 @@ class RezgoConnectorController extends BaseController
             'passenger_type' => 'required|in:adult,child,senior',
         ]);
 
+        $mappingData = [];
+
         if ($request->filled('mapping_id')) {
             // Update existing mapping
             $mapping = RezgoProductMapping::findOrFail($request->mapping_id);
@@ -229,9 +234,10 @@ class RezgoConnectorController extends BaseController
                 'passenger_type' => $request->passenger_type,
                 'is_active' => true,
             ]);
+            $mappingData = $mapping->toArray();
         } else {
             // Create or update based on product_id
-            RezgoProductMapping::updateOrCreate(
+            $mapping = RezgoProductMapping::updateOrCreate(
                 ['product_id' => $request->product_id],
                 [
                     'rezgo_uid' => $request->rezgo_uid,
@@ -240,6 +246,12 @@ class RezgoConnectorController extends BaseController
                     'is_active' => true,
                 ]
             );
+            $mappingData = $mapping->toArray();
+        }
+
+        // Sync to external database if configured
+        if (setting('rezgo_external_sync_enabled', false)) {
+            $this->externalSync->syncMappingToExternal($mappingData);
         }
 
         return back()->with('success', __('Product mapping saved successfully'));
@@ -250,7 +262,15 @@ class RezgoConnectorController extends BaseController
      */
     public function deleteProductMapping(int $id): RedirectResponse
     {
-        RezgoProductMapping::findOrFail($id)->delete();
+        $mapping = RezgoProductMapping::findOrFail($id);
+        $rezgoUid = $mapping->rezgo_uid;
+        
+        $mapping->delete();
+        
+        // Delete from external database if sync is enabled
+        if (setting('rezgo_external_sync_enabled', false)) {
+            $this->externalSync->deleteMappingFromExternal($rezgoUid);
+        }
 
         return back()->with('success', __('Product mapping deleted'));
     }
@@ -489,15 +509,15 @@ class RezgoConnectorController extends BaseController
             // Create new draft product with correct fields
             $product = new \Botble\Ecommerce\Models\Product();
             $product->name = $rezgoTitle;
-            $product->description = __('Auto-imported from Rezgo inventory UID: :uid', ['uid' => $rezgoUid]);
-            $product->content = __('Booking details will be added after product activation.');
+            $product->description = $rezgoTitle; // Use Rezgo title as description
+            $product->content = ''; // Empty content for editing
             $product->status = 'draft';
             $product->is_variation = false;
-            $product->sku = 'REZGO-' . $rezgoUid;
+            $product->sku = ''; // No SKU - client doesn't use them
             $product->price = 0;
             $product->quantity = 1;
             $product->weight = 0;
-            $product->wide = 0;  // Note: uses 'wide' not 'width'
+            $product->wide = 0;
             $product->height = 0;
             $product->length = 0;
             $product->tax_id = null;
@@ -514,11 +534,173 @@ class RezgoConnectorController extends BaseController
                 'is_active' => true,
             ]);
 
-            return back()->with('success', __('✅ Successfully created draft product: :name. Check the Products section to publish.', 
-                ['name' => $rezgoTitle]));
+            // Redirect to product edit page
+            return redirect()->route('products.edit', $product->id)->with('success', __('✅ Draft product created. Edit it below and upload images, then publish when ready.'));
         } catch (\Exception $e) {
             \Log::error('Rezgo import-as-draft error: ' . $e->getMessage() . ' [' . $e->getFile() . ':' . $e->getLine() . '] Trace: ' . $e->getTraceAsString());
             return back()->with('error', __('❌ Import failed: ') . $e->getMessage());
+        }
+    }
+
+    /**
+     * Show external database sync settings
+     */
+    public function showExternalSyncSettings(): View
+    {
+        return view('rezgo::external-sync-settings', [
+            'host' => setting('rezgo_external_host', ''),
+            'port' => setting('rezgo_external_port', '3306'),
+            'username' => setting('rezgo_external_username', ''),
+            'password' => setting('rezgo_external_password', '') ? '••••••••' : '',
+            'database' => setting('rezgo_external_database', ''),
+            'enabled' => setting('rezgo_external_sync_enabled', false),
+        ]);
+    }
+
+    /**
+     * Test connection to external database (AJAX)
+     */
+    public function testExternalConnection(\Illuminate\Http\Request $request)
+    {
+        $credentials = [
+            'host' => $request->input('host'),
+            'port' => $request->input('port', 3306),
+            'username' => $request->input('username'),
+            'password' => $request->input('password'),
+            'database' => $request->input('database'),
+        ];
+
+        // If password is empty, try to use saved password
+        if (empty($credentials['password'])) {
+            $savedPassword = setting('rezgo_external_password');
+            if ($savedPassword) {
+                $credentials['password'] = $savedPassword;
+            }
+        }
+
+        $result = ExternalDatabaseConfigService::testConnection($credentials);
+
+        if ($result['success']) {
+            // If server connection works, test database access
+            $dbResult = ExternalDatabaseConfigService::testDatabaseAccess($credentials);
+            return response()->json($dbResult);
+        }
+
+        return response()->json($result);
+    }
+
+    /**
+     * Create required tables in external database (AJAX)
+     */
+    public function createExternalTables(\Illuminate\Http\Request $request)
+    {
+        $credentials = [
+            'host' => $request->input('host'),
+            'port' => $request->input('port', 3306),
+            'username' => $request->input('username'),
+            'password' => $request->input('password'),
+            'database' => $request->input('database'),
+        ];
+
+        // If password is empty, try to use saved password
+        if (empty($credentials['password'])) {
+            $savedPassword = setting('rezgo_external_password');
+            if ($savedPassword) {
+                $credentials['password'] = $savedPassword;
+            }
+        }
+
+        $result = ExternalDatabaseConfigService::createTables($credentials);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Get table status from external database (AJAX)
+     */
+    public function getExternalTableStatus(\Illuminate\Http\Request $request)
+    {
+        $credentials = [
+            'host' => $request->input('host'),
+            'port' => $request->input('port', 3306),
+            'username' => $request->input('username'),
+            'password' => $request->input('password'),
+            'database' => $request->input('database'),
+        ];
+
+        // If password is empty, try to use saved password
+        if (empty($credentials['password'])) {
+            $savedPassword = setting('rezgo_external_password');
+            if ($savedPassword) {
+                $credentials['password'] = $savedPassword;
+            }
+        }
+
+        $result = ExternalDatabaseConfigService::getTableStatus($credentials);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Save external database sync settings
+     */
+    public function saveExternalSyncSettings(\Illuminate\Http\Request $request): RedirectResponse
+    {
+        try {
+            // Check if this is first-time setup (no existing host configured)
+            $isFirstSetup = !setting('rezgo_external_host');
+            
+            // Validate: password is required on first setup, optional on updates
+            $rules = [
+                'host' => 'required|string',
+                'port' => 'required|integer|between:1,65535',
+                'username' => 'required|string',
+                'password' => $isFirstSetup ? 'required|string|min:1' : 'nullable|string',
+                'database' => 'required|string',
+                'enabled' => 'boolean',
+            ];
+
+            $request->validate($rules);
+
+            // Debug: log what we received
+            \Log::info('External sync form submission', [
+                'isFirstSetup' => $isFirstSetup,
+                'password_filled' => $request->filled('password'),
+                'password_length' => strlen($request->input('password', '')),
+                'all_inputs' => $request->all(),
+            ]);
+
+            // Prepare settings to save
+            $settings = [
+                'rezgo_external_host' => $request->input('host'),
+                'rezgo_external_port' => $request->input('port'),
+                'rezgo_external_username' => $request->input('username'),
+                'rezgo_external_database' => $request->input('database'),
+                'rezgo_external_sync_enabled' => $request->input('enabled', false) ? 1 : 0,
+            ];
+
+            // ALWAYS include password if provided or if first setup
+            $password = $request->input('password');
+            if ($password) {
+                $settings['rezgo_external_password'] = $password;
+                \Log::info('Saving password: ' . strlen($password) . ' characters');
+            } else if ($isFirstSetup) {
+                return back()->with('error', 'Password is required for initial setup');
+            }
+
+            // Save credentials using Setting facade
+            Setting::set($settings)->save();
+            
+            // Verify it was saved
+            $savedPassword = setting('rezgo_external_password');
+            \Log::info('Password saved verification: ' . ($savedPassword ? 'YES (' . strlen($savedPassword) . ' chars)' : 'NO'));
+
+            return back()->with('success', 'External database settings saved successfully!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors());
+        } catch (\Exception $e) {
+            \Log::error('Error saving external sync settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Error saving settings: ' . $e->getMessage());
         }
     }
 }

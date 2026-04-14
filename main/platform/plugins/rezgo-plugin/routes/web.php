@@ -30,6 +30,16 @@ AdminHelper::registerRoutes(function (): void {
 
         Route::get('/import-as-draft', [RezgoConnectorController::class, 'importAsDraft'])->name('import-as-draft');
 
+        Route::prefix('external-sync')
+            ->as('external-sync.')
+            ->group(function () {
+                Route::get('/', [RezgoConnectorController::class, 'showExternalSyncSettings'])->name('settings');
+                Route::post('/save', [RezgoConnectorController::class, 'saveExternalSyncSettings'])->name('save');
+                Route::post('/test-connection', [RezgoConnectorController::class, 'testExternalConnection'])->name('test-connection');
+                Route::post('/create-tables', [RezgoConnectorController::class, 'createExternalTables'])->name('create-tables');
+                Route::post('/table-status', [RezgoConnectorController::class, 'getExternalTableStatus'])->name('table-status');
+            });
+
         Route::prefix('logs')
             ->as('logs.')
             ->group(function () {

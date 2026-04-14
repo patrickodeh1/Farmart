@@ -64,7 +64,30 @@ class RezgoConnectorServiceProvider extends ServiceProvider
                             ->priority(50)
                             ->icon('ti ti-packages')
                             ->name('rezgo::messages.rezgo_connector')
+                    );
+
+                // Add main Settings submenu
+                DashboardMenu::make()
+                    ->registerItem(
+                        DashboardMenuItem::make()
+                            ->id('rezgo-settings')
+                            ->priority(50)
+                            ->parentId('rezgo-connector')
+                            ->icon('ti ti-settings')
+                            ->name('Settings')
                             ->route('rezgo.index')
+                    );
+
+                // Add External Sync Settings submenu
+                DashboardMenu::make()
+                    ->registerItem(
+                        DashboardMenuItem::make()
+                            ->id('rezgo-external-sync')
+                            ->priority(51)
+                            ->parentId('rezgo-connector')
+                            ->icon('ti ti-refresh-dot')
+                            ->name('External Sync')
+                            ->route('rezgo.external-sync.settings')
                     );
             });
         }
