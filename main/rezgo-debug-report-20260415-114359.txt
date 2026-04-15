@@ -1,0 +1,74 @@
+==========================================
+SYSTEM INFORMATION
+==========================================
+Timestamp: Wed 15 Apr 2026 11:43:59 AM WAT
+Current User: soarer
+Current Directory: /home/soarer/Projects/new/farmart/main
+OS: Linux
+
+✓ Laravel installation found
+
+==========================================
+REZGO DEBUG - INVENTORY
+==========================================
+Docker detected, checking for running containers...
+Found Docker containers: main_app_1
+
+Running debug command in container: main_app_1
+
+   ERROR  There are no commands defined in the "rezgo" namespace.  
+
+
+
+==========================================
+ENVIRONMENT CHECK
+==========================================
+Composer detected issues in your platform:
+
+Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29.
+
+PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29. in /home/soarer/Projects/new/farmart/main/vendor/composer/platform_check.php on line 28
+
+==========================================
+APPLICATION LOGS (Last 50 lines)
+==========================================
+
+
+==========================================
+PHP CONFIGURATION
+==========================================
+PHP 7.4.3-4ubuntu2.29 (cli) (built: Mar 25 2025 18:57:03) ( NTS )
+Copyright (c) The PHP Group
+Zend Engine v3.4.0, Copyright (c) Zend Technologies
+    with Zend OPcache v7.4.3-4ubuntu2.29, Copyright (c), by Zend Technologies
+/etc/php/7.4/cli/conf.d/20-json.ini,
+max_execution_time => 0 => 0
+memory_limit => -1 => -1
+json
+json support => enabled
+
+==========================================
+DATABASE CONNECTION
+==========================================
+Composer detected issues in your platform:
+
+Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29.
+
+PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29. in /home/soarer/Projects/new/farmart/main/vendor/composer/platform_check.php on line 28
+
+==========================================
+REZGO PLUGIN STATUS
+==========================================
+✓ Rezgo Plugin directory found
+Plugin location: /home/soarer/Projects/new/farmart/main/platform/plugins/rezgo-plugin
+
+Plugin files:
+total 36
+drwxrwxr-x 2 soarer soarer  4096 Apr 15 11:37 .
+drwxrwxr-x 3 soarer soarer  4096 Apr 15 11:37 ..
+-rw-rw-r-- 1 soarer soarer 26467 Apr 15 11:37 RezgoConnectorController.php
+
+==========================================
+DEBUG COMPLETE
+==========================================
+Report generated: Wed 15 Apr 2026 11:44:00 AM WAT

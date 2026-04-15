@@ -211,7 +211,7 @@ unset($__errorArgs, $__bag); ?>
                                     <a href="<?php echo e(route('rezgo.product-mappings.index')); ?>" class="list-group-item list-group-item-action">
                                         <?php echo e(__('Product Mappings')); ?>
 
-                                        <span class="badge bg-primary float-end"><?php echo e($mappingsCount); ?></span>
+                                        <span class="badge bg-primary text-white float-end"><?php echo e($mappingsCount); ?></span>
                                     </a>
                                     <a href="<?php echo e(route('rezgo.submit-order.form')); ?>" class="list-group-item list-group-item-action">
                                         <?php echo e(__('Submit Order')); ?>
@@ -220,7 +220,7 @@ unset($__errorArgs, $__bag); ?>
                                     <a href="<?php echo e(route('rezgo.submissions.index')); ?>" class="list-group-item list-group-item-action">
                                         <?php echo e(__('Submissions')); ?>
 
-                                        <span class="badge bg-info float-end"><?php echo e($submissionsCount); ?></span>
+                                        <span class="badge bg-info text-white float-end"><?php echo e($submissionsCount); ?></span>
                                     </a>
                                     <a href="<?php echo e(route('rezgo.logs.index')); ?>" class="list-group-item list-group-item-action">
                                         <?php echo e(__('Activity Logs')); ?>
@@ -240,7 +240,7 @@ unset($__errorArgs, $__bag); ?>
                                     <div class="mb-2 pb-2 border-bottom">
                                         <small class="text-muted"><?php echo e($log->created_at->diffForHumans()); ?></small>
                                         <div class="small">
-                                            <span class="badge bg-<?php echo e($log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success')); ?>">
+                                            <span class="badge bg-<?php echo e($log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success')); ?> text-white">
                                                 <?php echo e(strtoupper($log->log_type)); ?>
 
                                             </span>

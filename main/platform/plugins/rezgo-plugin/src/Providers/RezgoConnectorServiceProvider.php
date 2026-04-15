@@ -96,6 +96,7 @@ class RezgoConnectorServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Botble\RezgoConnector\Commands\SetupRezgoTestData::class,
+                \Botble\RezgoConnector\Commands\ClearRezgoMappings::class,
             ]);
         }
 

@@ -48,13 +48,13 @@
                                                     {{ $submission->rezgo_booking_id ?? '—' }}
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-{{ $submission->status === 'success' ? 'success' : 'danger' }}">
+                                                    <span class="badge bg-{{ $submission->status === 'success' ? 'success' : 'danger' }} text-white">
                                                         {{ ucfirst($submission->status) }}
                                                     </span>
                                                 </td>
                                                 <td>
                                                     @if ($submission->http_status)
-                                                        <span class="badge bg-{{ $submission->http_status >= 200 && $submission->http_status < 300 ? 'success' : 'danger' }}">
+                                                        <span class="badge bg-{{ $submission->http_status >= 200 && $submission->http_status < 300 ? 'success' : 'danger' }} text-white">
                                                             {{ $submission->http_status }}
                                                         </span>
                                                     @else

@@ -1,0 +1,231 @@
+==========================================
+SYSTEM INFORMATION
+==========================================
+Timestamp: Wed 15 Apr 2026 11:25:19 AM WAT
+Current User: soarer
+Current Directory: /home/soarer/Projects/new/farmart/main
+OS: Linux
+
+✓ Laravel installation found
+
+==========================================
+REZGO DEBUG - INVENTORY
+==========================================
+Docker detected, checking for running containers...
+Found Docker containers: main_app_1
+
+Running debug command in container: main_app_1
+═══════════════════════════════════════════════════════════════
+  REZGO INVENTORY DEBUG
+═══════════════════════════════════════════════════════════════
+
+✅ Rezgo credentials found
+
+[1/3] Fetching all inventory from Rezgo API...
+✅ Found 12 inventory items
+
+[2/3] Processing items...
+
+Item #001:
+  UID: 418065
+  Name: N/A
+  Item: Universal Orlando - 1-Day Base Ticket
+  Option: 1-Day Base Ticket
+  Description: {"overview":"","highlights":"This ticket is an add on option. Express Passes DOES NOT grant entry in...
+  Has HTML content: Yes (2920 chars)
+
+  ⚠️  DEBUG - All Available Fields in Response: 
+       • num: 1
+       • uid: 418065
+       • com: 418065
+       • item: Universal Orlando - 1-Day Base Ticket
+       • option: 1-Day Base Ticket
+       • provider: 10373
+       • time_format: static
+       • availability_type: date
+       • availability_provider: -1
+       • start_date: 11
+       • end_date: 2145945600
+       • starting: 150.00
+       • group: request_name
+       • cutoff: 0.00
+       • ticket_provider: universal
+       • ticket_pricing: variable
+       • date_selection: always
+       • currency_symbol: US $
+       • currency_separator: ,
+       • currency_decimals: 2
+       • currency_base: USD
+       • location_name: 6000 Universal Blvd
+       • location_address: 6000 Universal Blvd, Orlando, FL 32819, USA
+       • city: Orlando
+       • state: FL
+       • country: US
+       • lat: 28.47273
+       • lon: -81.47023
+       • zoom: 12
+       • map_type: ROADMAP
+       • updated: 1771889024
+       • cid: 32036
+
+Item #002:
+  UID: 418066
+  Name: N/A
+  Item: Universal Orlando - 2-Day Base Ticket
+  Option: 2-Day Base Ticket
+  Description: {"overview":"","highlights":"This ticket is an add on option. Express Passes DOES NOT grant entry in...
+  Has HTML content: Yes (2916 chars)
+
+Item #003:
+  UID: 418054
+  Name: N/A
+  Item: Walt Disney World Resort 1 Day
+  Option: 1-Day Magic Kingdom Theme Park Ticket
+  Duration: 1 day
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #004:
+  UID: 418056
+  Name: N/A
+  Item: Walt Disney World Resort 1 Day
+  Option: 1-Day Disney's Animal Kingdom Theme Park Ticket
+  Duration: 1 day
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #005:
+  UID: 418058
+  Name: N/A
+  Item: Walt Disney World Resort 1 Day
+  Option: 1-Day EPCOT Theme Park Ticket
+  Duration: 1 day
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #006:
+  UID: 418060
+  Name: N/A
+  Item: Walt Disney World Resort 1 Day
+  Option: 1-Day Ticket with Park Hopper Plus Option
+  Duration: 1 day
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #007:
+  UID: 418061
+  Name: N/A
+  Item: Walt Disney World Resort 1 Day
+  Option: 1-Day Disney's Hollywood Studios Theme Park Ticket
+  Duration: 1 day
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #008:
+  UID: 418062
+  Name: N/A
+  Item: Walt Disney World Resort 1 Day
+  Option: 1-Day Ticket with Park Hopper Option
+  Duration: 1 day
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #009:
+  UID: 418053
+  Name: N/A
+  Item: Walt Disney World Resort 3 Day
+  Option: 3-Day Ticket with Park Hopper Plus Option
+  Duration: 3 days
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #010:
+  UID: 418055
+  Name: N/A
+  Item: Walt Disney World Resort 3 Day
+  Option: 3-Day Ticket with Admission to 1 Park Per Day
+  Duration: 3 days
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #011:
+  UID: 418057
+  Name: N/A
+  Item: Walt Disney World Resort 3 Day
+  Option: 3-Day Ticket with Admission to 1 Park Per Day and Water Park and Sports Option
+  Duration: 3 days
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+Item #012:
+  UID: 418059
+  Name: N/A
+  Item: Walt Disney World Resort 3 Day
+  Option: 3-Day Ticket with Park Hopper Option
+  Duration: 3 days
+  Description: {"overview":"","highlights":"","itinerary":"","pick_up":"","drop_off":"","bring":"","inclusions":"",...
+  Has HTML content: Yes (197 chars)
+
+[3/3] Summary
+
+Total items available in Rezgo: 12
+
+If you're missing items:
+  1. Search for the item UID in the list above
+  2. If present, try importing it via "Import as Draft" button
+  3. If not present, check your Rezgo account permissions
+
+
+
+==========================================
+ENVIRONMENT CHECK
+==========================================
+Composer detected issues in your platform:
+
+Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29.
+
+PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29. in /home/soarer/Projects/new/farmart/main/vendor/composer/platform_check.php on line 28
+
+==========================================
+APPLICATION LOGS (Last 50 lines)
+==========================================
+
+
+==========================================
+PHP CONFIGURATION
+==========================================
+PHP 7.4.3-4ubuntu2.29 (cli) (built: Mar 25 2025 18:57:03) ( NTS )
+Copyright (c) The PHP Group
+Zend Engine v3.4.0, Copyright (c) Zend Technologies
+    with Zend OPcache v7.4.3-4ubuntu2.29, Copyright (c), by Zend Technologies
+/etc/php/7.4/cli/conf.d/20-json.ini,
+max_execution_time => 0 => 0
+memory_limit => -1 => -1
+json
+json support => enabled
+
+==========================================
+DATABASE CONNECTION
+==========================================
+Composer detected issues in your platform:
+
+Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29.
+
+PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 7.4.3-4ubuntu2.29. in /home/soarer/Projects/new/farmart/main/vendor/composer/platform_check.php on line 28
+
+==========================================
+REZGO PLUGIN STATUS
+==========================================
+✓ Rezgo Plugin directory found
+Plugin location: /home/soarer/Projects/new/farmart/main/platform/plugins/rezgo-plugin
+
+Plugin files:
+total 36
+drwxr-xr-x 2 soarer soarer  4096 Apr 15 10:11 .
+drwxr-xr-x 4 soarer soarer  4096 Apr 15 10:11 ..
+-rw-r--r-- 1 soarer soarer 27041 Apr 15 11:17 RezgoConnectorController.php
+
+==========================================
+DEBUG COMPLETE
+==========================================
+Report generated: Wed 15 Apr 2026 11:25:22 AM WAT

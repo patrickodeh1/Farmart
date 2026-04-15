@@ -216,6 +216,50 @@ class RezgoApiService
     }
 
     /**
+     * Get item (tour) details by UID
+     */
+    public function getItemDetails(string $uid): array
+    {
+        if (!$this->settings->isConfigured()) {
+            return ['success' => false, 'error' => 'API not configured'];
+        }
+
+        try {
+            $cid = $this->settings->getCid();
+            $apiKey = $this->settings->getApiKey();
+
+            $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
+            $xml .= '<request>' . PHP_EOL;
+            $xml .= '  <transcode>' . htmlspecialchars($cid) . '</transcode>' . PHP_EOL;
+            $xml .= '  <key>' . htmlspecialchars($apiKey) . '</key>' . PHP_EOL;
+            $xml .= '  <instruction>search</instruction>' . PHP_EOL;
+            $xml .= '  <uid>' . htmlspecialchars($uid) . '</uid>' . PHP_EOL;
+            $xml .= '</request>' . PHP_EOL;
+
+            $response = Http::timeout(30)
+                ->withHeaders(['Content-Type' => 'application/xml'])
+                ->withBody($xml, 'application/xml')
+                ->post($this->baseUrl);
+
+            $responseData = $this->parseXmlResponse($response->body());
+            
+            if (isset($responseData['item'])) {
+                $item = $responseData['item'];
+                // Handle multiple items
+                if (is_array($item) && isset($item[0])) {
+                    $item = $item[0];
+                }
+                return ['success' => true, 'data' => $item];
+            }
+
+            return ['success' => false, 'error' => 'Item not found', 'data' => $responseData];
+        } catch (\Exception $e) {
+            RezgoLog::error('get_item_details', null, 'Failed: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Parse XML response from Rezgo API
      */
     private function parseXmlResponse(string $xmlBody): array|string

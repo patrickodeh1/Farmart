@@ -61,27 +61,24 @@
                                                     <small><?php echo e($mapping->rezgo_title ?? '—'); ?></small>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-info"><?php echo e(ucfirst($mapping->passenger_type)); ?></span>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-<?php echo e($mapping->is_active ? 'success' : 'secondary'); ?>">
-                                                        <?php echo e($mapping->is_active ? __('Active') : __('Inactive')); ?>
+                                                    <?php echo e(ucfirst($mapping->passenger_type)); ?>
 
-                                                    </span>
                                                 </td>
                                                 <td>
-                                                    <div class="btn-group gap-1" role="group">
-                                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#mapModal" onclick="setMappingData(<?php echo e($mapping->id); ?>, <?php echo e($mapping->product_id); ?>, '<?php echo e($mapping->rezgo_uid); ?>', '<?php echo e($mapping->rezgo_title); ?>', '<?php echo e($mapping->passenger_type); ?>')" title="<?php echo e(__('Edit mapping')); ?>">
-                                                            ✏️
+                                                    <?php echo e($mapping->is_active ? __('Active') : __('Inactive')); ?>
+
+                                                </td>
+                                                <td>
+                                                    <a href="#" class="btn btn-sm btn-icon" data-bs-toggle="modal" data-bs-target="#mapModal" onclick="setMappingData(<?php echo e($mapping->id); ?>, <?php echo e($mapping->product_id); ?>, '<?php echo e($mapping->rezgo_uid); ?>', '<?php echo e($mapping->rezgo_title); ?>', '<?php echo e($mapping->passenger_type); ?>')" title="<?php echo e(__('Edit mapping')); ?>">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form action="<?php echo e(route('rezgo.product-mappings.delete', $mapping->id)); ?>" method="POST" style="display: inline;">
+                                                        <?php echo csrf_field(); ?>
+                                                        <?php echo method_field('DELETE'); ?>
+                                                        <button type="submit" class="btn btn-sm btn-icon" onclick="return confirm('<?php echo e(__('Are you sure?')); ?>')" title="<?php echo e(__('Delete mapping')); ?>">
+                                                            <i class="fas fa-trash text-danger"></i>
                                                         </button>
-                                                        <form action="<?php echo e(route('rezgo.product-mappings.delete', $mapping->id)); ?>" method="POST" style="display: inline;">
-                                                            <?php echo csrf_field(); ?>
-                                                            <?php echo method_field('DELETE'); ?>
-                                                            <button type="submit" class="btn btn-sm btn-ghost-danger" onclick="return confirm('<?php echo e(__('Are you sure?')); ?>')" title="<?php echo e(__('Delete mapping')); ?>">
-                                                                🗑️
-                                                            </button>
-                                                        </form>
-                                                    </div>
+                                                    </form>
                                                 </td>
                                             </tr>
                                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -109,8 +106,11 @@
                     <?php if($rezgoTours): ?>
                         <div class="col-12">
                             <div class="card">
-                                <div class="card-header">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <h3 class="card-title"><?php echo e(__('Available Rezgo Inventory')); ?></h3>
+                                    <?php if($totalInventoryCount > 0): ?>
+                                        <span class="badge bg-info text-white"><?php echo e($totalInventoryCount); ?> total items</span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-vcenter">
@@ -148,6 +148,20 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php if($totalInventoryCount > 50): ?>
+                                    <div class="card-footer d-flex flex-column align-items-center">
+                                        <p class="text-muted small mb-3">Showing <?php echo e(count($rezgoTours)); ?> of <?php echo e($totalInventoryCount); ?> items</p>
+                                        <nav aria-label="Page navigation">
+                                            <ul class="pagination pagination-sm">
+                                                <?php for($i = 1; $i <= ceil($totalInventoryCount / 50); $i++): ?>
+                                                    <li class="page-item <?php echo e(request()->query('rezgo_page', 1) == $i ? 'active' : ''); ?>">
+                                                        <a class="page-link" href="<?php echo e(route('rezgo.product-mappings.index', ['rezgo_page' => $i])); ?>#rezgo-inventory"><?php echo e($i); ?></a>
+                                                    </li>
+                                                <?php endfor; ?>
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endif; ?>

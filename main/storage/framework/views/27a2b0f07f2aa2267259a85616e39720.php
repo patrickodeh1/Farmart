@@ -42,7 +42,7 @@
                                                     <small class="text-muted"><?php echo e($log->created_at->format('M d, H:i:s')); ?></small>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-<?php echo e($log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success')); ?>">
+                                                    <span class="badge bg-<?php echo e($log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success')); ?> text-white">
                                                         <?php echo e(strtoupper($log->log_type)); ?>
 
                                                     </span>

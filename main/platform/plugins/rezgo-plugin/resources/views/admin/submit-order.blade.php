@@ -74,14 +74,14 @@
                                                             $hasAvailability = is_numeric($availability) && $availability > 0;
                                                         @endphp
                                                         <div>
-                                                            <span class="badge bg-{{ $product['mapped'] ? 'success' : 'warning' }}">
+                                                            <span class="badge bg-{{ $product['mapped'] ? 'success' : 'warning' }} text-white">
                                                                 {{ $product['product_name'] }} (x{{ $product['quantity'] }})
                                                             </span>
                                                             @if ($product['mapped'])
                                                                 <br><small class="text-muted">
                                                                     → {{ $product['rezgo_title'] }}
                                                                     @if (is_numeric($availability))
-                                                                        <span class="badge bg-{{ $hasAvailability ? 'info' : 'danger' }} ms-1">
+                                                                        <span class="badge bg-{{ $hasAvailability ? 'info' : 'danger' }} ms-1 text-white">
                                                                             Avail: {{ $availability }}
                                                                         </span>
                                                                     @endif

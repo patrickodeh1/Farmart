@@ -44,7 +44,7 @@
                                                     <small class="text-muted">{{ $log->created_at->format('M d, H:i:s') }}</small>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-{{ $log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success') }}">
+                                                    <span class="badge bg-{{ $log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success') }} text-white">
                                                         {{ strtoupper($log->log_type) }}
                                                     </span>
                                                 </td>

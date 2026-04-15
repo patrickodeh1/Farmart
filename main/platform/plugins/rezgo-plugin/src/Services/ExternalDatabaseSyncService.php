@@ -22,7 +22,7 @@ class ExternalDatabaseSyncService
     private function getExternalDb(): ?object
     {
         // Check if external sync is enabled and configured
-        if (!setting('rezgo_external_sync_enabled', false)) {
+        if (!env('REZGO_EXTERNAL_SYNC_ENABLED', false)) {
             return null;
         }
 
@@ -32,18 +32,18 @@ class ExternalDatabaseSyncService
         }
 
         try {
-            // Get credentials from settings
-            $host = setting('rezgo_external_host');
-            $port = setting('rezgo_external_port', 3306);
-            $username = setting('rezgo_external_username');
-            $password = setting('rezgo_external_password');
-            $database = setting('rezgo_external_database');
+            // Get credentials from .env file
+            $host = env('REZGO_EXTERNAL_HOST');
+            $port = env('REZGO_EXTERNAL_PORT', 3306);
+            $username = env('REZGO_EXTERNAL_USERNAME');
+            $password = env('REZGO_EXTERNAL_PASSWORD');
+            $database = env('REZGO_EXTERNAL_DATABASE');
 
             if (!$host || !$username || !$database) {
                 RezgoLog::warning(
                     'external_sync',
                     null,
-                    'External database credentials not configured in settings'
+                    'External database credentials not configured in .env (REZGO_EXTERNAL_*)'
                 );
                 return null;
             }

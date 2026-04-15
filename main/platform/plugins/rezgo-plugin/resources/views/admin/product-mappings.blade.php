@@ -61,26 +61,22 @@
                                                     <small>{{ $mapping->rezgo_title ?? '—' }}</small>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-info">{{ ucfirst($mapping->passenger_type) }}</span>
+                                                    {{ ucfirst($mapping->passenger_type) }}
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-{{ $mapping->is_active ? 'success' : 'secondary' }}">
-                                                        {{ $mapping->is_active ? __('Active') : __('Inactive') }}
-                                                    </span>
+                                                    {{ $mapping->is_active ? __('Active') : __('Inactive') }}
                                                 </td>
                                                 <td>
-                                                    <div class="btn-group gap-1" role="group">
-                                                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#mapModal" onclick="setMappingData({{ $mapping->id }}, {{ $mapping->product_id }}, '{{ $mapping->rezgo_uid }}', '{{ $mapping->rezgo_title }}', '{{ $mapping->passenger_type }}')" title="{{ __('Edit mapping') }}">
-                                                            ✏️
+                                                    <a href="#" class="btn btn-sm btn-icon" data-bs-toggle="modal" data-bs-target="#mapModal" onclick="setMappingData({{ $mapping->id }}, {{ $mapping->product_id }}, '{{ $mapping->rezgo_uid }}', '{{ $mapping->rezgo_title }}', '{{ $mapping->passenger_type }}')" title="{{ __('Edit mapping') }}">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form action="{{ route('rezgo.product-mappings.delete', $mapping->id) }}" method="POST" style="display: inline;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-icon" onclick="return confirm('{{ __('Are you sure?') }}')" title="{{ __('Delete mapping') }}">
+                                                            <i class="fas fa-trash text-danger"></i>
                                                         </button>
-                                                        <form action="{{ route('rezgo.product-mappings.delete', $mapping->id) }}" method="POST" style="display: inline;">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="btn btn-sm btn-ghost-danger" onclick="return confirm('{{ __('Are you sure?') }}')" title="{{ __('Delete mapping') }}">
-                                                                🗑️
-                                                            </button>
-                                                        </form>
-                                                    </div>
+                                                    </form>
                                                 </td>
                                             </tr>
                                         @empty
@@ -106,8 +102,11 @@
                     @if ($rezgoTours)
                         <div class="col-12">
                             <div class="card">
-                                <div class="card-header">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <h3 class="card-title">{{ __('Available Rezgo Inventory') }}</h3>
+                                    @if($totalInventoryCount > 0)
+                                        <span class="badge bg-info text-white">{{ $totalInventoryCount }} total items</span>
+                                    @endif
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-vcenter">
@@ -143,6 +142,20 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                @if($totalInventoryCount > 50)
+                                    <div class="card-footer d-flex flex-column align-items-center">
+                                        <p class="text-muted small mb-3">Showing {{ count($rezgoTours) }} of {{ $totalInventoryCount }} items</p>
+                                        <nav aria-label="Page navigation">
+                                            <ul class="pagination pagination-sm">
+                                                @for ($i = 1; $i <= ceil($totalInventoryCount / 50); $i++)
+                                                    <li class="page-item {{ request()->query('rezgo_page', 1) == $i ? 'active' : '' }}">
+                                                        <a class="page-link" href="{{ route('rezgo.product-mappings.index', ['rezgo_page' => $i]) }}#rezgo-inventory">{{ $i }}</a>
+                                                    </li>
+                                                @endfor
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endif

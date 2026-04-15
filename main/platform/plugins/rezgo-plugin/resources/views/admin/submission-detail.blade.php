@@ -45,7 +45,7 @@
                                 <div class="mb-3">
                                     <label class="form-label">{{ __('Status') }}</label>
                                     <div>
-                                        <span class="badge bg-{{ $submission->status === 'success' ? 'success' : 'danger' }} fs-6">
+                                        <span class="badge bg-{{ $submission->status === 'success' ? 'success' : 'danger' }} fs-6 text-white">
                                             {{ ucfirst($submission->status) }}
                                         </span>
                                     </div>
@@ -55,7 +55,7 @@
                                     <label class="form-label">{{ __('HTTP Status') }}</label>
                                     <div class="form-control-plaintext">
                                         @if ($submission->http_status)
-                                            <span class="badge bg-{{ $submission->http_status >= 200 && $submission->http_status < 300 ? 'success' : 'danger' }}">
+                                            <span class="badge bg-{{ $submission->http_status >= 200 && $submission->http_status < 300 ? 'success' : 'danger' }} text-white">
                                                 {{ $submission->http_status }}
                                             </span>
                                         @else

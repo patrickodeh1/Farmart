@@ -155,14 +155,14 @@
                                 <div class="list-group list-group-transparent">
                                     <a href="{{ route('rezgo.product-mappings.index') }}" class="list-group-item list-group-item-action">
                                         {{ __('Product Mappings') }}
-                                        <span class="badge bg-primary float-end">{{ $mappingsCount }}</span>
+                                        <span class="badge bg-primary text-white float-end">{{ $mappingsCount }}</span>
                                     </a>
                                     <a href="{{ route('rezgo.submit-order.form') }}" class="list-group-item list-group-item-action">
                                         {{ __('Submit Order') }}
                                     </a>
                                     <a href="{{ route('rezgo.submissions.index') }}" class="list-group-item list-group-item-action">
                                         {{ __('Submissions') }}
-                                        <span class="badge bg-info float-end">{{ $submissionsCount }}</span>
+                                        <span class="badge bg-info text-white float-end">{{ $submissionsCount }}</span>
                                     </a>
                                     <a href="{{ route('rezgo.logs.index') }}" class="list-group-item list-group-item-action">
                                         {{ __('Activity Logs') }}
@@ -181,7 +181,7 @@
                                     <div class="mb-2 pb-2 border-bottom">
                                         <small class="text-muted">{{ $log->created_at->diffForHumans() }}</small>
                                         <div class="small">
-                                            <span class="badge bg-{{ $log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success') }}">
+                                            <span class="badge bg-{{ $log->log_type === 'error' ? 'danger' : ($log->log_type === 'warning' ? 'warning' : 'success') }} text-white">
                                                 {{ strtoupper($log->log_type) }}
                                             </span>
                                             {{ $log->message }}
