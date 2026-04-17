@@ -73,19 +73,20 @@
                             <div># Enable external sync (true/false)</div>
                             <div>REZGO_EXTERNAL_SYNC_ENABLED=true</div>
                             <div><br></div>
-                            <div># Database connection details</div>
-                            <div>REZGO_EXTERNAL_HOST=localhost</div>
-                            <div>REZGO_EXTERNAL_PORT=3306</div>
-                            <div>REZGO_EXTERNAL_DATABASE=your_custom_db</div>
-                            <div>REZGO_EXTERNAL_USERNAME=db_user</div>
-                            <div>REZGO_EXTERNAL_PASSWORD=db_password</div>
+                            <div># Database connection details (using existing DZM_COATAA_DB_* variables)</div>
+                            <div>DZM_COATAA_DB_HOST=localhost</div>
+                            <div>DZM_COATAA_DB_PORT=3306</div>
+                            <div>DZM_COATAA_DB_DATABASE=your_custom_db</div>
+                            <div>DZM_COATAA_DB_USERNAME=db_user</div>
+                            <div>DZM_COATAA_DB_PASSWORD=db_password</div>
                         </div>
 
                         <h6 class="mt-4 mb-3"><i class="fas fa-tasks"></i> Setup Steps:</h6>
                         <ol>
                             <li>Open your <code>.env</code> file in the Farmart root directory</li>
-                            <li>Find the <code>REZGO_EXTERNAL_</code> section (around line 45)</li>
-                            <li>Fill in your external database credentials</li>
+                            <li>Find the <code>DZM_COATAA_DB_*</code> section</li>
+                            <li>Ensure your external database credentials are filled in</li>
+                            <li>Add or enable: <code>REZGO_EXTERNAL_SYNC_ENABLED=true</code></li>
                             <li>Save the file</li>
                             <li>Clear Laravel cache by running: <code>php artisan config:cache</code></li>
                             <li>Use the tools below to verify the connection works</li>

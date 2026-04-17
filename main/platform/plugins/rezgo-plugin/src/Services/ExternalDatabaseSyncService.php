@@ -33,17 +33,17 @@ class ExternalDatabaseSyncService
 
         try {
             // Get credentials from .env file
-            $host = env('REZGO_EXTERNAL_HOST');
-            $port = env('REZGO_EXTERNAL_PORT', 3306);
-            $username = env('REZGO_EXTERNAL_USERNAME');
-            $password = env('REZGO_EXTERNAL_PASSWORD');
-            $database = env('REZGO_EXTERNAL_DATABASE');
+            $host = env('DZM_COATAA_DB_HOST');
+            $port = env('DZM_COATAA_DB_PORT', 3306);
+            $username = env('DZM_COATAA_DB_USERNAME');
+            $password = env('DZM_COATAA_DB_PASSWORD');
+            $database = env('DZM_COATAA_DB_DATABASE');
 
             if (!$host || !$username || !$database) {
                 RezgoLog::warning(
                     'external_sync',
                     null,
-                    'External database credentials not configured in .env (REZGO_EXTERNAL_*)'
+                    'External database credentials not configured in .env (DZM_COATAA_DB_*)'
                 );
                 return null;
             }
