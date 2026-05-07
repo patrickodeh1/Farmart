@@ -1,0 +1,1 @@
+<i class="icon-hotdog"></i><?php /**PATH /var/www/html/storage/framework/views/1e295d1b3de3804590f9b41b733e9720.blade.php ENDPATH**/ ?>

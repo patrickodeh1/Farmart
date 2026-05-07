@@ -1,0 +1,128 @@
+<?php
+
+namespace Botble\RezgoConnector\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Botble\Ecommerce\Events\OrderPlacedEvent;
+use Botble\RezgoConnector\Listeners\SubmitOrderToRezgo;
+use Illuminate\Support\Facades\Event;
+use Botble\Base\Facades\DashboardMenu;
+use Botble\Base\Supports\DashboardMenuItem;
+
+class RezgoConnectorServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        // Merge config from plugin
+        $this->mergeConfigFrom(__DIR__ . '/../../config/rezgo.php', 'rezgo');
+
+        // Register singleton services
+        $this->app->singleton('rezgo.settings', function () {
+            return new \Botble\RezgoConnector\Services\RezgoSettingsService();
+        });
+
+        $this->app->singleton('rezgo.api', function ($app) {
+            return new \Botble\RezgoConnector\Services\RezgoApiService(
+                $app->make(\Botble\RezgoConnector\Services\RezgoSettingsService::class)
+            );
+        });
+
+        $this->app->singleton('rezgo.logger', function () {
+            return new \Botble\RezgoConnector\Services\RezgoLoggerService();
+        });
+    }
+
+    public function boot(): void
+    {
+        // Configure logging channel for Rezgo
+        config(['logging.channels.rezgo' => [
+            'driver' => 'daily',
+            'path'   => storage_path('logs/rezgo-sync.log'),
+            'level'  => 'debug',
+            'days'   => 14,
+        ]]);
+
+        // Load migrations
+        $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
+
+        // Load routes
+        $this->loadRoutesFrom(__DIR__ . '/../../routes/web.php');
+
+        // Load translations
+        $this->loadTranslationsFrom(__DIR__ . '/../../resources/lang', 'rezgo');
+
+        // Load views
+        $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'rezgo');
+
+        // Register event listener
+        Event::listen(OrderPlacedEvent::class, SubmitOrderToRezgo::class);
+
+        // Register admin menu item if DashboardMenu is available
+        if (class_exists('\Botble\Base\Facades\DashboardMenu')) {
+            DashboardMenu::default()->beforeRetrieving(function (): void {
+                DashboardMenu::make()
+                    ->registerItem(
+                        DashboardMenuItem::make()
+                            ->id('rezgo-connector')
+                            ->priority(50)
+                            ->icon('ti ti-packages')
+                            ->name('rezgo::messages.rezgo_connector')
+                    );
+
+                // Add main Settings submenu
+                DashboardMenu::make()
+                    ->registerItem(
+                        DashboardMenuItem::make()
+                            ->id('rezgo-settings')
+                            ->priority(50)
+                            ->parentId('rezgo-connector')
+                            ->icon('ti ti-settings')
+                            ->name('Settings')
+                            ->route('rezgo.index')
+                    );
+
+                // Add External Sync Settings submenu
+                DashboardMenu::make()
+                    ->registerItem(
+                        DashboardMenuItem::make()
+                            ->id('rezgo-external-sync')
+                            ->priority(51)
+                            ->parentId('rezgo-connector')
+                            ->icon('ti ti-refresh-dot')
+                            ->name('External Sync')
+                            ->route('rezgo.external-sync.settings')
+                    );
+
+                // Add Dynamic Pricing submenu
+                DashboardMenu::make()
+                    ->registerItem(
+                        DashboardMenuItem::make()
+                            ->id('rezgo-dynamic-pricing')
+                            ->priority(52)
+                            ->parentId('rezgo-connector')
+                            ->icon('ti ti-currency-dollar')
+                            ->name('Dynamic Pricing')
+                            ->route('rezgo.dynamic-pricing')
+                    );
+            });
+        }
+
+        // Register commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Botble\RezgoConnector\Commands\SetupRezgoTestData::class,
+                \Botble\RezgoConnector\Commands\ClearRezgoMappings::class,
+                \Botble\RezgoConnector\Commands\SyncRezgoPrices::class,
+                \Botble\RezgoConnector\Commands\DebugRezgoInventory::class,
+                \Botble\RezgoConnector\Commands\TestRezgoApi::class,
+                \Botble\RezgoConnector\Commands\TestImageAttachment::class,
+            ]);
+        }
+
+        // Publish configuration
+        $this->publishes(
+            [__DIR__ . '/../../config' => config_path('rezgo')],
+            'rezgo-config'
+        );
+    }
+}

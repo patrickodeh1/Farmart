@@ -1,0 +1,1 @@
+<i class="icon-hamburger"></i><?php /**PATH /var/www/html/storage/framework/views/e0a84ed4779e1572834c78599e86a061.blade.php ENDPATH**/ ?>

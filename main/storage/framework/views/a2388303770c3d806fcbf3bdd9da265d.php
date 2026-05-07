@@ -1,0 +1,2 @@
+<?php echo $__env->make('plugins/ecommerce::themes.includes.ajax-search-results', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php /**PATH /var/www/html/platform/themes/farmart/partials/ajax-search-results.blade.php ENDPATH**/ ?>

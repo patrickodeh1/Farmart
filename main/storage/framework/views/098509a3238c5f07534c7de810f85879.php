@@ -1,0 +1,1 @@
+<i class="icon-coffee-cup"></i><?php /**PATH /var/www/html/storage/framework/views/73a62ecfb5211aee28c11800c9af2531.blade.php ENDPATH**/ ?>

@@ -1,0 +1,1 @@
+<i class="icon-steak"></i><?php /**PATH /var/www/html/storage/framework/views/b274cfda8e53fb169e9e132266db7808.blade.php ENDPATH**/ ?>
