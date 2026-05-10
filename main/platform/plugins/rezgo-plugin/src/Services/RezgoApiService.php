@@ -715,18 +715,18 @@ class RezgoApiService
             $apiKey = $this->settings->getApiKey();
 
             // Build all requests for parallel execution
-            $requests = [];
-            $dateStrs = [];
+            $urlsToFetch = [];
+            $cachedResults = [];
             
             for ($day = 1; $day <= $lastDay; $day++) {
                 $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
-                $dateStrs[$dateStr] = true;
                 
                 // Check cache first to reduce concurrent requests
                 $cacheKey = 'rezgo_price_' . $uid . '_' . $dateStr;
                 $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
                 if ($cached) {
-                    continue; // Skip cached items from concurrent requests
+                    $cachedResults[$dateStr] = $cached;
+                    continue;
                 }
                 
                 // Build URL for this date
@@ -738,20 +738,37 @@ class RezgoApiService
                     . '&q='         . urlencode($uid)
                     . '&d='         . urlencode($dateStr);
                 
-                $requests[$dateStr] = $url;
+                $urlsToFetch[$dateStr] = $url;
             }
 
-            // Execute all non-cached requests in parallel (max 5 concurrent)
+            // Execute all non-cached requests in parallel using Http::pool()
             $responses = [];
-            $chunkSize = 5;
-            $chunks = array_chunk($requests, $chunkSize, true);
-            
-            foreach ($chunks as $chunk) {
-                $poolRequests = [];
-                foreach ($chunk as $dateStr => $url) {
-                    $poolRequests[$dateStr] = Http::timeout(10)->get($url);
+            if (!empty($urlsToFetch)) {
+                try {
+                    // Use Http::pool() for true concurrent requests - batch in groups to prevent overload
+                    $dateKeys = array_keys($urlsToFetch);
+                    $batchSize = 5;
+                    
+                    foreach (array_chunk($dateKeys, $batchSize) as $batch) {
+                        $batchRequests = [];
+                        foreach ($batch as $dateStr) {
+                            $batchRequests[$dateStr] = $urlsToFetch[$dateStr];
+                        }
+                        
+                        $batchResponses = Http::pool(fn ($pool) => collect($batchRequests)
+                            ->mapWithKeys(fn ($url, $dateStr) => [$dateStr => $pool->timeout(10)->get($url)])
+                            ->all()
+                        );
+                        
+                        $responses = array_merge($responses, $batchResponses);
+                    }
+                } catch (\Exception $e) {
+                    // Fallback: execute sequentially if pool() fails
+                    \Log::warning('Http::pool() failed, falling back to sequential requests: ' . $e->getMessage());
+                    foreach ($urlsToFetch as $dateStr => $url) {
+                        $responses[$dateStr] = Http::timeout(10)->get($url);
+                    }
                 }
-                $responses = array_merge($responses, $poolRequests);
             }
 
             // Process results from cache + parallel requests
@@ -761,51 +778,54 @@ class RezgoApiService
                 $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
                 
                 // Try cache first
-                $cacheKey = 'rezgo_price_' . $uid . '_' . $dateStr;
-                $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
-                if ($cached) {
-                    $dates[] = $cached;
+                if (isset($cachedResults[$dateStr])) {
+                    $dates[] = $cachedResults[$dateStr];
                     continue;
                 }
                 
                 // Check response from parallel requests
                 if (isset($responses[$dateStr])) {
-                    $response = $responses[$dateStr];
-                    $data = $this->parseXmlResponse($response->body());
-                    $item = $data['item'] ?? $data['tour'] ?? null;
-                    
-                    if ($item && ($dateBlock = $item['date'] ?? null)) {
-                        if (isset($dateBlock[0])) {
-                            foreach ($dateBlock as $block) {
-                                if (isset($block['@value']) && $block['@value'] === $dateStr) {
-                                    $dateBlock = $block;
-                                    break;
+                    try {
+                        $response = $responses[$dateStr];
+                        $data = $this->parseXmlResponse($response->body());
+                        $item = $data['item'] ?? $data['tour'] ?? null;
+                        
+                        if ($item && ($dateBlock = $item['date'] ?? null)) {
+                            if (isset($dateBlock[0])) {
+                                foreach ($dateBlock as $block) {
+                                    if (isset($block['@value']) && $block['@value'] === $dateStr) {
+                                        $dateBlock = $block;
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                        
-                        if (is_array($dateBlock)) {
-                            $active = ($dateBlock['active'] ?? '0') == '1';
-                            $priceAdult = (float)($dateBlock['price_adult'] ?? 0);
                             
-                            $result = [
-                                'date'         => $dateStr,
-                                'available'    => $active && $priceAdult > 0,
-                                'availability' => (int)($dateBlock['availability'] ?? 0),
-                                'price_adult'  => $priceAdult,
-                                'price_child'  => (float)($dateBlock['price_child'] ?? 0),
-                                'price_senior' => (float)($dateBlock['price_senior'] ?? 0),
-                            ];
-                            
-                            \Illuminate\Support\Facades\Cache::put($cacheKey, $result, 3600);
-                            $dates[] = $result;
-                            continue;
+                            if (is_array($dateBlock)) {
+                                $active = ($dateBlock['active'] ?? '0') == '1';
+                                $priceAdult = (float)($dateBlock['price_adult'] ?? 0);
+                                
+                                $result = [
+                                    'date'         => $dateStr,
+                                    'available'    => $active && $priceAdult > 0,
+                                    'availability' => (int)($dateBlock['availability'] ?? 0),
+                                    'price_adult'  => $priceAdult,
+                                    'price_child'  => (float)($dateBlock['price_child'] ?? 0),
+                                    'price_senior' => (float)($dateBlock['price_senior'] ?? 0),
+                                ];
+                                
+                                \Illuminate\Support\Facades\Cache::put($cacheKey, $result, 3600);
+                                $dates[] = $result;
+                                continue;
+                            }
                         }
+                    } catch (\Exception $e) {
+                        // Continue to fallback for this date
                     }
                 }
                 
                 // Fallback for failed requests
-                $dates[] = [
+                $cacheKey = 'rezgo_price_' . $uid . '_' . $dateStr;
+                $fallback = [
                     'date'         => $dateStr,
                     'available'    => false,
                     'availability' => 0,
@@ -813,6 +833,8 @@ class RezgoApiService
                     'price_child'  => 0,
                     'price_senior' => 0,
                 ];
+                \Illuminate\Support\Facades\Cache::put($cacheKey, $fallback, 3600);
+                $dates[] = $fallback;
             }
 
             return [
