@@ -1033,7 +1033,7 @@
     <?php if(request()->ajax()): ?>
         <?php echo $__env->make('plugins/ecommerce::products.partials.digital-product-file-template', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <?php else: ?>
-        <?php if (! $__env->hasRenderedOnce('7f550daa-d083-4418-acd8-07a9814f322c')): $__env->markAsRenderedOnce('7f550daa-d083-4418-acd8-07a9814f322c');
+        <?php if (! $__env->hasRenderedOnce('017b8970-03e0-48d8-8dad-65b58aeec405')): $__env->markAsRenderedOnce('017b8970-03e0-48d8-8dad-65b58aeec405');
 $__env->startPush('footer'); ?>
             <?php echo $__env->make('plugins/ecommerce::products.partials.digital-product-file-template', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         <?php $__env->stopPush(); endif; ?>

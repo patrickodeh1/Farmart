@@ -247,139 +247,6 @@ class RezgoConnectorController extends BaseController
         return view('rezgo::admin.logs', ['logs' => $logs]);
     }
 
-    public function showDynamicPricing(): View
-    {
-        return view('rezgo::admin.dynamic-pricing');
-    }
-
-    public function syncPricesAjax(): JsonResponse
-    {
-        try {
-            // Get all product mappings
-            $mappings = RezgoProductMapping::with('product')->get();
-            
-            if ($mappings->isEmpty()) {
-                return response()->json([
-                    'success' => true,
-                    'results' => [],
-                    'summary' => ['updated' => 0, 'unchanged' => 0, 'failed' => 0, 'total' => 0]
-                ]);
-            }
-
-            $results = [];
-            $updated = 0;
-            $failed = 0;
-            $unchanged = 0;
-
-            foreach ($mappings as $mapping) {
-                try {
-                    $rezgoUid = $mapping->rezgo_uid;
-                    $product = $mapping->product;
-
-                    if (!$product) {
-                        $failed++;
-                        continue;
-                    }
-
-                    // Fetch full item data from Rezgo
-                    $response = $this->api->getItemFull($rezgoUid);
-
-                    if (!$response['success'] || empty($response['data'])) {
-                        $results[] = [
-                            'product_name' => $product->name,
-                            'rezgo_uid' => $rezgoUid,
-                            'old_price' => $product->price,
-                            'new_price' => $product->price,
-                            'change_percent' => 0
-                        ];
-                        $failed++;
-                        continue;
-                    }
-
-                    $itemData = $response['data'];
-                    $basePrice = (float)$this->api->extractPrice($itemData);
-
-                    if ($basePrice <= 0) {
-                        $unchanged++;
-                        continue;
-                    }
-
-                    // Calculate sell price with margin
-                    $sellPrice = $basePrice;
-                    
-                    if ($mapping->margin_percent && $mapping->margin_percent > 0) {
-                        $sellPrice = $basePrice + ($basePrice * $mapping->margin_percent / 100);
-                    }
-                    
-                    if ($mapping->margin_amount && $mapping->margin_amount > 0) {
-                        $sellPrice = $sellPrice + $mapping->margin_amount;
-                    }
-
-                    // Ensure numeric conversion
-                    $sellPrice = (float)round($sellPrice, 2);
-                    $oldPrice = (float)$product->price;
-                    $priceChanged = abs($oldPrice - $sellPrice) > 0.01;
-
-                    if (!$priceChanged) {
-                        $unchanged++;
-                        continue;
-                    }
-
-                    // Update product price - IMPORTANT: directly set and save
-                    $product->update([
-                        'price' => $sellPrice,
-                        'sale_price' => null,  // Clear any sale price to avoid conflicts
-                        'start_date' => null,
-                        'end_date' => null,
-                    ]);
-                    
-                    // Refresh product to recalculate computed attributes (price_with_taxes, front_sale_price, etc)
-                    $product->refresh();
-
-                    // Update mapping
-                    $mapping->update([
-                        'rezgo_price' => $basePrice,
-                        'sell_price' => $sellPrice,
-                        'cost_price' => $basePrice,
-                    ]);
-
-                    // Calculate change percentage
-                    $changePercent = $oldPrice > 0 ? round((($sellPrice - $oldPrice) / $oldPrice) * 100, 1) : 0;
-
-                    $results[] = [
-                        'product_name' => $product->name,
-                        'rezgo_uid' => $rezgoUid,
-                        'old_price' => $oldPrice,
-                        'new_price' => $sellPrice,
-                        'change_percent' => $changePercent
-                    ];
-
-                    $updated++;
-
-                } catch (\Exception $e) {
-                    $failed++;
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'results' => $results,
-                'summary' => [
-                    'updated' => $updated,
-                    'unchanged' => $unchanged,
-                    'failed' => $failed,
-                    'total' => $mappings->count()
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function testConnection(): RedirectResponse
     {
         if (!$this->settings->isConfigured()) {
@@ -416,7 +283,7 @@ class RezgoConnectorController extends BaseController
 
         try {
             $bookingDate = Carbon::createFromFormat('Y-m-d', $tourDate);
-            if ($bookingDate->startOfDay()->lt(Carbon::today())) {
+            if ($bookingDate->isPast()) {
                 return back()->with('error', __('Tour date must be in the future'));
             }
         } catch (\Exception $e) {
@@ -535,7 +402,7 @@ class RezgoConnectorController extends BaseController
             if ($itemResponse['success'] && !empty($itemResponse['data'])) {
                 $itemData = $itemResponse['data'];
                 $richContent = $this->api->extractDescription($itemData);
-                $rezgoPrice  = $this->api->extractPrice($itemData);
+                $rezgoPrice  = $this->api->extractPrice($itemData, $rezgoUid);  // Pass UID for dynamic pricing fallback
                 $photoUrls   = $this->api->extractPhotoUrls($itemData);
                 \Log::info('Rezgo importAsDraft: extracted data', [
                     'uid'          => $rezgoUid,

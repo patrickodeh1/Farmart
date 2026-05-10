@@ -1,4 +1,4 @@
-<?php if (! $__env->hasRenderedOnce('2294e8df-aa02-4783-b1f9-819d0049c0bf')): $__env->markAsRenderedOnce('2294e8df-aa02-4783-b1f9-819d0049c0bf'); ?>
+<?php if (! $__env->hasRenderedOnce('c0ea2def-a318-4271-8b99-61aae9ef77eb')): $__env->markAsRenderedOnce('c0ea2def-a318-4271-8b99-61aae9ef77eb'); ?>
     <div class="facebook-comment">
         <div class="fb-comments" data-href="<?php echo e(request()->url()); ?>" data-numposts="5" data-width="100%"></div>
     </div>

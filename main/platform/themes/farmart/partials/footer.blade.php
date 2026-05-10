@@ -351,6 +351,29 @@
 
     {!! Theme::footer() !!}
 
+    @if (is_plugin_active('rezgo-plugin'))
+        <!-- Load axios for API calls -->
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <!-- Load Vue 3 before the app.js bundle -->
+        <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.js"></script>
+        <script>
+            // Make the Laravel translation helper available globally
+            window.__ = function(key, replace = {}) {
+                let value = key;
+                // Check window.trans object first (defined above)
+                if (window.trans && window.trans[key]) {
+                    value = window.trans[key];
+                }
+                // Replace placeholders
+                for (let placeholder in replace) {
+                    value = value.replace(':' + placeholder, replace[placeholder]);
+                }
+                return value;
+            };
+        </script>
+        <script src="{{ Theme::asset()->url('js/app.js') }}"></script>
+    @endif
+
     @include('packages/theme::toast-notification')
     </body>
 

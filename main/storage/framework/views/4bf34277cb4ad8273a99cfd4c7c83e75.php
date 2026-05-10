@@ -1,1 +1,0 @@
-<i class="icon-star"></i><?php /**PATH /var/www/html/storage/framework/views/e4528cf4c794f929bb514c9a3fcf6a15.blade.php ENDPATH**/ ?>

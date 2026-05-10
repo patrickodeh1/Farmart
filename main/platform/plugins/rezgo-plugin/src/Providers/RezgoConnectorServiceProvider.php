@@ -93,17 +93,7 @@ class RezgoConnectorServiceProvider extends ServiceProvider
                             ->route('rezgo.external-sync.settings')
                     );
 
-                // Add Dynamic Pricing submenu
-                DashboardMenu::make()
-                    ->registerItem(
-                        DashboardMenuItem::make()
-                            ->id('rezgo-dynamic-pricing')
-                            ->priority(52)
-                            ->parentId('rezgo-connector')
-                            ->icon('ti ti-currency-dollar')
-                            ->name('Dynamic Pricing')
-                            ->route('rezgo.dynamic-pricing')
-                    );
+
             });
         }
 

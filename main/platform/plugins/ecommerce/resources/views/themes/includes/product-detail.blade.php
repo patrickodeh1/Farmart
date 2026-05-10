@@ -48,8 +48,27 @@
                         value="{{ $product->id }}"
                     />
 
-                    <div class="d-flex gap-4 mb-3">
+                    <div class="d-flex gap-4 mb-3 align-items-end">
                         @include(EcommerceHelper::viewPath('includes.product-quantity'))
+                        @php
+                            $hasRezgoMapping = is_plugin_active('rezgo-plugin') && 
+                                \Botble\RezgoConnector\Models\RezgoProductMapping::where('product_id', $product->id)->exists();
+                        @endphp
+                        @if ($hasRezgoMapping)
+                            @php
+                                $rezgoMapping = \Botble\RezgoConnector\Models\RezgoProductMapping::where('product_id', $product->id)->first();
+                            @endphp
+                            <div class="flex-grow-1">
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-primary w-100"
+                                    id="rezgo-select-date-btn"
+                                >
+                                    <x-core::icon name="ti ti-calendar"/>
+                                    {{ __('Select Date & Price') }}
+                                </button>
+                            </div>
+                        @endif
                         <button
                             type="submit"
                             name="add-to-cart"
@@ -62,6 +81,10 @@
                             {{ __('Add To Cart') }}
                         </button>
                     </div>
+                    
+                    @if ($hasRezgoMapping ?? false)
+                        <div id="rezgo-calendar-root" data-rezgo-uid="{{ $rezgoMapping->rezgo_uid ?? '' }}"></div>
+                    @endif
 
                     @if(EcommerceHelper::isWishlistEnabled() || EcommerceHelper::isCompareEnabled())
                         <div class="d-flex gap-4 mb-3">

@@ -30,8 +30,39 @@
 
         <div class="product-button">
             <?php if(EcommerceHelper::isCartEnabled()): ?>
-                <?php echo Theme::partial('ecommerce.product-quantity', compact('product')); ?>
+                <?php
+                    $hasRezgoMapping = is_plugin_active('rezgo-plugin') && 
+                        \Botble\RezgoConnector\Models\RezgoProductMapping::where('product_id', $product->id)->exists();
+                ?>
+                <div class="d-flex gap-2 align-items-end mb-2">
+                    <?php echo Theme::partial('ecommerce.product-quantity', compact('product')); ?>
 
+                    <?php if($hasRezgoMapping): ?>
+                        <?php
+                            $rezgoMapping = \Botble\RezgoConnector\Models\RezgoProductMapping::where('product_id', $product->id)->first();
+                        ?>
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary"
+                            id="rezgo-select-date-btn"
+                        >
+                            <span class="svg-icon">
+                                <svg>
+                                    <use href="#svg-icon-calendar" xlink:href="#svg-icon-calendar"></use>
+                                </svg>
+                            </span>
+                            <span class="ms-1"><?php echo e(__('Select Date & Price')); ?></span>
+                        </button>
+                    <?php endif; ?>
+                </div>
+                <?php if($hasRezgoMapping ?? false): ?>
+                    <!-- Hidden fields for Rezgo calendar selection -->
+                    <input type="hidden" id="rezgo-selected-date" name="rezgo_date" />
+                    <input type="hidden" id="rezgo-selected-price" name="rezgo_price" />
+                    <input type="hidden" id="rezgo-product-uid" name="rezgo_uid" value="<?php echo e($rezgoMapping->rezgo_uid ?? ''); ?>" />
+                    
+                    <div id="rezgo-calendar-root" data-rezgo-uid="<?php echo e($rezgoMapping->rezgo_uid ?? ''); ?>"></div>
+                <?php endif; ?>
                 <button
                     class="btn btn-primary mb-2 add-to-cart-button <?php if($product->isOutOfStock()): ?> disabled <?php endif; ?>"
                     name="add_to_cart"

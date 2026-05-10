@@ -1,6 +1,0 @@
-<?php
-    Theme::set('pageDescription', $brand->description);
-?>
-
-<?php echo $__env->make(Theme::getThemeNamespace('views.ecommerce.products'), array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-<?php /**PATH /var/www/html/platform/themes/farmart/views/ecommerce/brand.blade.php ENDPATH**/ ?>

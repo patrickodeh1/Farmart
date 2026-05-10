@@ -59,7 +59,9 @@ mix
     .sass(source + '/assets/sass/style-rtl.scss', dist + '/css')
 
     .js(source + '/assets/js/main.js', dist + '/js')
+    .js(source + '/resources/js/app.js', dist + '/js/app.js')
 
     .copy(dist + '/css/style.css', source + '/public/css')
     .copy(dist + '/css/style-rtl.css', source + '/public/css')
     .copy(dist + '/js/main.js', source + '/public/js')
+    .copy(dist + '/js/app.js', source + '/public/js')

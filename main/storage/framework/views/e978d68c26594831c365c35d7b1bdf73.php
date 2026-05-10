@@ -119,7 +119,7 @@
     </p>
 <?php endif; ?>
 
-<?php if (! $__env->hasRenderedOnce('9330033a-2168-4a64-bb40-492f2ff9b0eb')): $__env->markAsRenderedOnce('9330033a-2168-4a64-bb40-492f2ff9b0eb'); ?>
+<?php if (! $__env->hasRenderedOnce('ad7fdf14-cc37-42a0-b1c2-9ef8047eee7a')): $__env->markAsRenderedOnce('ad7fdf14-cc37-42a0-b1c2-9ef8047eee7a'); ?>
     <?php if(request()->ajax()): ?>
         <?php echo $__env->make('plugins/ecommerce::products.partials.select-product-attributes-template', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <?php else: ?>

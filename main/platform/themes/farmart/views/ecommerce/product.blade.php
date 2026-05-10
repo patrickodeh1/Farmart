@@ -443,14 +443,14 @@
 
                         @if (EcommerceHelper::isQuickBuyButtonEnabled())
                             <button
-                                class="btn btn-primary btn-black mb-2 ms-2 add-to-cart-button @if ($product->isOutOfStock()) disabled @endif"
+                                class="btn btn-primary btn-black ms-2 add-to-cart-button @if ($product->isOutOfStock()) disabled @endif"
                                 name="checkout"
                                 type="button"
                                 value="1"
                                 title="{{ __('Buy Now') }}"
                                 @if ($product->isOutOfStock()) disabled @endif
                             >
-                                <span class="add-to-cart-text ms-2">{{ __('Buy Now') }}</span>
+                                <span class="add-to-cart-text">{{ __('Buy Now') }}</span>
                             </button>
                         @endif
                     @endif
@@ -459,3 +459,41 @@
         </div>
     </div>
 </div>
+
+@if (is_plugin_active('rezgo-plugin'))
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Listen for Rezgo calendar date selection event
+        document.addEventListener('rezgo-date-selected', function(e) {
+            const date = e.detail.date;
+            const price = e.detail.price;
+            
+            // Store in hidden fields
+            document.getElementById('rezgo-selected-date').value = date;
+            document.getElementById('rezgo-selected-price').value = price;
+            
+            // Display selected date and price
+            document.getElementById('display-selected-date').textContent = date;
+            document.getElementById('display-selected-price').textContent = '$' + price.toFixed(2);
+            document.querySelector('.selected-date-display').style.display = 'block';
+            
+            // Modify add to cart to include Rezgo data
+            const addToCartBtn = document.querySelector('.add-to-cart-button');
+            if (addToCartBtn && !addToCartBtn.hasAttribute('data-rezgo-ready')) {
+                addToCartBtn.addEventListener('click', function(evt) {
+                    if (document.getElementById('rezgo-selected-date').value) {
+                        // Rezgo date is selected, proceed with cart submission
+                        // The hidden fields will be sent with the form
+                        return true;
+                    } else {
+                        evt.preventDefault();
+                        alert('Please select a date from the calendar');
+                        return false;
+                    }
+                });
+                addToCartBtn.setAttribute('data-rezgo-ready', 'true');
+            }
+        });
+    });
+    </script>
+@endif

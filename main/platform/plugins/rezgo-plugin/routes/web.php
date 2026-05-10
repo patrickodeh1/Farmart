@@ -12,8 +12,6 @@ AdminHelper::registerRoutes(function (): void {
         Route::get('/sync-inventory', [RezgoConnectorController::class, 'syncInventory'])->name('sync-inventory');
         Route::get('/submit-order', [RezgoConnectorController::class, 'showSubmitOrderForm'])->name('submit-order.form');
         Route::post('/submit-order', [RezgoConnectorController::class, 'submitOrder'])->name('submit-order');
-        Route::get('/dynamic-pricing', [RezgoConnectorController::class, 'showDynamicPricing'])->name('dynamic-pricing');
-        Route::post('/sync-prices-ajax', [RezgoConnectorController::class, 'syncPricesAjax'])->name('sync-prices-ajax');
 
         Route::prefix('submissions')
             ->as('submissions.')
@@ -48,4 +46,17 @@ AdminHelper::registerRoutes(function (): void {
                 Route::get('/', [RezgoConnectorController::class, 'logs'])->name('index');
             });
     });
+});
+
+// Public API routes for pricing (no auth required for frontend calendar)
+Route::prefix('api/rezgo')->name('rezgo.api.')->group(function () {
+    Route::get('/pricing/date', [
+        \Botble\RezgoConnector\Http\Controllers\RezgoPricingApiController::class,
+        'getPricingByDate'
+    ])->name('pricing.date');
+
+    Route::get('/pricing/month', [
+        \Botble\RezgoConnector\Http\Controllers\RezgoPricingApiController::class,
+        'getPricingForMonth'
+    ])->name('pricing.month');
 });
