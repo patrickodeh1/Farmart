@@ -1,8 +1,8 @@
 <template>
   <div class="rezgo-calendar-container">
     <!-- Calendar Modal -->
-    <div v-if="showModal" class="modal d-block" style="background-color: rgba(0,0,0,0.5)">
-      <div class="modal-dialog modal-lg">
+    <div v-if="showModal" class="modal d-block" style="background-color: rgba(0,0,0,0.5)" @click.self="showModal = false">
+      <div class="modal-dialog modal-lg" @click.stop>
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">{{ modalTitle }}</h5>
@@ -13,9 +13,9 @@
             <!-- Month/Year Navigation -->
             <div class="calendar-header mb-4">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <button @click="previousMonth" class="btn btn-sm btn-outline-secondary">&larr; {{ __('Previous') }}</button>
+                <button type="button" @click.stop.prevent="previousMonth" class="btn btn-sm btn-outline-secondary">&larr; {{ __('Previous') }}</button>
                 <h6 class="mb-0">{{ monthYearLabel }}</h6>
-                <button @click="nextMonth" class="btn btn-sm btn-outline-secondary">{{ __('Next') }} &rarr;</button>
+                <button type="button" @click.stop.prevent="nextMonth" class="btn btn-sm btn-outline-secondary">{{ __('Next') }} &rarr;</button>
               </div>
             </div>
 
