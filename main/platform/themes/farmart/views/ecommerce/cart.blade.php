@@ -63,6 +63,20 @@
                                                 </span>
                                             </div>
                                         @endif
+                                        
+                                        @if ($rezgoData = Arr::get($cartItem->options, 'rezgo'))
+                                            <div class="rezgo-booking-info mt-2 p-2 bg-light rounded">
+                                                <p class="mb-1">
+                                                    <small class="text-muted">{{ __('Booking Date') }}: </small>
+                                                    <small class="fw-bold">{{ $rezgoData['date'] ?? 'N/A' }}</small>
+                                                </p>
+                                                <p class="mb-0">
+                                                    <small class="text-muted">{{ __('Booking Price') }}: </small>
+                                                    <small class="fw-bold">{{ format_price($rezgoData['price'] ?? 0) }}</small>
+                                                </p>
+                                            </div>
+                                        @endif
+                                        
                                         @if ($attributes = Arr::get($cartItem->options, 'attributes'))
                                             <p class="mb-0">
                                                 <small>{{ $attributes }}</small>
@@ -85,7 +99,14 @@
                                             <span class="d-md-none title-price">{{ __('Price') }}: </span>
                                             <span class="quantity">
                                                 <span class="price-amount amount">
-                                                    <bdi>{{ format_price($cartItem->price) }} @if ($product->front_sale_price != $product->price)
+                                                    <bdi>
+                                                        @php
+                                                            // Use Rezgo price if available, otherwise use cart item price
+                                                            $rezgoPrice = Arr::get($cartItem->options, 'rezgo.price');
+                                                            $displayPrice = $rezgoPrice ? (float)$rezgoPrice : $cartItem->price;
+                                                        @endphp
+                                                        {{ format_price($displayPrice) }} 
+                                                        @if ($product->front_sale_price != $product->price)
                                                             <small><del>{{ format_price($product->price) }}</del></small>
                                                         @endif
                                                     </bdi>
@@ -114,8 +135,15 @@
                                         <div class="box-price">
                                             <span class="d-md-none title-price">{{ __('Total') }}: </span>
                                             <span class="fw-bold amount">
-                                                <span
-                                                    class="price-current">{{ format_price($cartItem->price * $cartItem->qty) }}</span>
+                                                <span class="price-current">
+                                                    @php
+                                                        // Use Rezgo price if available, otherwise use cart item price
+                                                        $rezgoPrice = Arr::get($cartItem->options, 'rezgo.price');
+                                                        $itemPrice = $rezgoPrice ? (float)$rezgoPrice : $cartItem->price;
+                                                        $itemTotal = $itemPrice * $cartItem->qty;
+                                                    @endphp
+                                                    {{ format_price($itemTotal) }}
+                                                </span>
                                             </span>
                                         </div>
                                     </td>

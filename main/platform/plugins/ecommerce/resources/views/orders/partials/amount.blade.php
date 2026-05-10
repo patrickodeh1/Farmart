@@ -7,7 +7,16 @@
         </div>
         <div class="col-6">
             <p class="price-text sub-total-text text-end">
-                {{ format_price(Cart::instance('cart')->rawSubTotal()) }}
+                @php
+                    // Calculate subtotal using Rezgo prices if available
+                    $subtotal = 0;
+                    foreach (Cart::instance('cart')->content() as $item) {
+                        $rezgoPrice = Arr::get($item->options, 'rezgo.price');
+                        $itemPrice = $rezgoPrice ? (float)$rezgoPrice : $item->price;
+                        $subtotal += $itemPrice * $item->qty;
+                    }
+                @endphp
+                {{ format_price($subtotal) }}
             </p>
         </div>
     </div>

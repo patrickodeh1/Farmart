@@ -564,23 +564,57 @@ class OrderHelper
         }
 
         /**
+         * Prepare cart options array
+         */
+        $cartOptions = [
+            'image' => $image,
+            'attributes' => $product->is_variation ? $product->variation_attributes : '',
+            'taxRate' => $taxRate,
+            'taxClasses' => $taxClasses,
+            'options' => $options,
+            'extras' => $request->input('extras', []),
+            'sku' => $product->sku,
+            'weight' => $product->weight,
+        ];
+
+        /**
+         * Add Rezgo booking data if present
+         */
+        $cartPrice = $product->price()->getPrice(false);
+        
+        // Debug logging
+        \Log::info('OrderHelper::handleAddCart DEBUG', [
+            'rezgo_date' => $request->input('rezgo_date'),
+            'rezgo_price' => $request->input('rezgo_price'),
+            'rezgo_uid' => $request->input('rezgo_uid'),
+            'base_price' => $cartPrice,
+        ]);
+        
+        if ($request->input('rezgo_date') && $request->input('rezgo_price') && $request->input('rezgo_uid')) {
+            $cartOptions['rezgo'] = [
+                'date' => $request->input('rezgo_date'),
+                'price' => $request->input('rezgo_price'),
+                'uid' => $request->input('rezgo_uid'),
+            ];
+            
+            // Use the selected Rezgo date price instead of the base product price
+            $cartPrice = (float)$request->input('rezgo_price');
+            
+            \Log::info('OrderHelper::handleAddCart REZGO PRICE SET', [
+                'rezgo_price' => $request->input('rezgo_price'),
+                'cartPrice' => $cartPrice,
+            ]);
+        }
+
+        /**
          * Add cart to session
          */
         Cart::instance('cart')->add(
             $product->getKey(),
             BaseHelper::clean($parentProduct->name ?: $product->name),
             $request->input('qty', 1),
-            $product->price()->getPrice(false),
-            [
-                'image' => $image,
-                'attributes' => $product->is_variation ? $product->variation_attributes : '',
-                'taxRate' => $taxRate,
-                'taxClasses' => $taxClasses,
-                'options' => $options,
-                'extras' => $request->input('extras', []),
-                'sku' => $product->sku,
-                'weight' => $product->weight,
-            ]
+            $cartPrice,
+            $cartOptions
         );
 
         return Cart::instance('cart')->content()->toArray();
