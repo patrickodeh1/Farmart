@@ -170,62 +170,41 @@ class RezgoApiService
         }
 
         try {
-            $cid = $this->settings->getCid();
+            $cid    = $this->settings->getCid();
             $apiKey = $this->settings->getApiKey();
 
-            $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
-            $xml .= '<request>' . PHP_EOL;
-            $xml .= '  <transcode>' . htmlspecialchars($cid) . '</transcode>' . PHP_EOL;
-            $xml .= '  <key>' . htmlspecialchars($apiKey) . '</key>' . PHP_EOL;
-            $xml .= '  <instruction>search</instruction>' . PHP_EOL;
-            $xml .= '  <uid>' . htmlspecialchars($uid) . '</uid>' . PHP_EOL;
-            $xml .= '</request>' . PHP_EOL;
+            $url = $this->baseUrl
+                . '?transcode=' . urlencode($cid)
+                . '&key='       . urlencode($apiKey)
+                . '&i=search'
+                . '&t=uid'
+                . '&q='         . urlencode($uid);
 
-            RezgoLog::sync('get_item_full', null, 'Request XML: ' . $xml);
+            $response     = Http::timeout(30)->get($url);
+            $responseData = $this->parseXmlResponse($response->body());
 
-            $response = Http::timeout(30)
-                ->withHeaders(['Content-Type' => 'application/xml'])
-                ->withBody($xml, 'application/xml')
-                ->post($this->baseUrl);
+            $item = $responseData['item'] ?? $responseData['tour'] ?? null;
 
-            $responseBody = $response->body();
-            RezgoLog::sync('get_item_full', null, 'Raw response body: ' . substr($responseBody, 0, 500));
-
-            $responseData = $this->parseXmlResponse($responseBody);
-            
-            // Rezgo search instruction with UID returns item in various formats
-            // Try multiple possible keys
-            $item = null;
-            
-            if (isset($responseData['item'])) {
-                $item = $responseData['item'];
-            } elseif (isset($responseData['tour'])) {
-                $item = $responseData['tour'];
-            } elseif (isset($responseData['inventory'])) {
-                $item = $responseData['inventory'];
-            } elseif (is_array($responseData) && !empty($responseData)) {
-                // If response is array of items, get first one
-                foreach ($responseData as $key => $value) {
-                    if (is_array($value) && !is_numeric($key)) {
-                        $item = $value;
+            if (is_array($item) && isset($item[0]) && is_array($item[0])) {
+                foreach ($item as $candidate) {
+                    if (isset($candidate['uid']) && (string)$candidate['uid'] === (string)$uid) {
+                        $item = $candidate;
                         break;
                     }
                 }
+                if (is_array($item) && isset($item[0])) {
+                    $item = $item[0];
+                }
             }
-            
-            // Handle multiple items array
-            if (is_array($item) && isset($item[0]) && is_array($item[0])) {
-                $item = $item[0];
-            }
-            
-            if ($item) {
-                RezgoLog::sync('get_item_full', null, 'Item found, keys: ' . implode(',', array_keys((array)$item)));
+
+            if ($item && is_array($item)) {
                 return ['success' => true, 'data' => $item];
             }
 
-            RezgoLog::error('get_item_full', null, 'Item not found in response for uid: ' . $uid . ' | Response keys: ' . implode(',', array_keys((array)$responseData)));
-            return ['success' => false, 'error' => 'Item not found', 'data' => $responseData];
-        } catch (\Exception $e) {
+            RezgoLog::error('get_item_full', null, 'Item not found for uid: ' . $uid);
+            return ['success' => false, 'error' => 'Item not found'];
+
+        } catch (Exception $e) {
             RezgoLog::error('get_item_full', null, 'Failed: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
@@ -336,7 +315,7 @@ class RezgoApiService
         if ($uid && $this->settings->isConfigured()) {
             try {
                 // Try to get price for today or first available date in next 30 days
-                for ($i = 0; $i < 30; $i++) {
+                for ($i = 0; $i < 90; $i++) {
                     $checkDate = date('Y-m-d', strtotime("+{$i} days"));
                     $pricingResult = $this->getPricingByDate($uid, $checkDate);
                     
@@ -697,12 +676,6 @@ class RezgoApiService
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
-
-    /**
-     * Get pricing for every day in a given month using parallel requests.
-     * Used to populate the calendar. Makes concurrent HTTP requests for speed.
-     * Returns: ['success' => bool, 'dates' => [['date'=>'Y-m-d','price_adult'=>float,'available'=>bool], ...]]
-     */
     public function getPricingForMonth(string $uid, int $year, int $month): array
     {
         if (!$this->settings->isConfigured()) {
@@ -711,130 +684,24 @@ class RezgoApiService
 
         try {
             $lastDay = (int)date('t', mktime(0, 0, 0, $month, 1, $year));
-            $cid    = $this->settings->getCid();
-            $apiKey = $this->settings->getApiKey();
+            $dates   = [];
 
-            // Build all requests for parallel execution
-            $urlsToFetch = [];
-            $cachedResults = [];
-            
             for ($day = 1; $day <= $lastDay; $day++) {
                 $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
-                
-                // Check cache first to reduce concurrent requests
-                $cacheKey = 'rezgo_price_' . $uid . '_' . $dateStr;
-                $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
-                if ($cached) {
-                    $cachedResults[$dateStr] = $cached;
-                    continue;
-                }
-                
-                // Build URL for this date
-                $url = $this->baseUrl
-                    . '?transcode=' . urlencode($cid)
-                    . '&key='       . urlencode($apiKey)
-                    . '&i=search'
-                    . '&t=uid'
-                    . '&q='         . urlencode($uid)
-                    . '&d='         . urlencode($dateStr);
-                
-                $urlsToFetch[$dateStr] = $url;
-            }
+                $result  = $this->getPricingByDate($uid, $dateStr);
 
-            // Execute all non-cached requests in parallel using Http::pool()
-            $responses = [];
-            if (!empty($urlsToFetch)) {
-                try {
-                    // Use Http::pool() for true concurrent requests - batch in groups to prevent overload
-                    $dateKeys = array_keys($urlsToFetch);
-                    $batchSize = 5;
-                    
-                    foreach (array_chunk($dateKeys, $batchSize) as $batch) {
-                        $batchRequests = [];
-                        foreach ($batch as $dateStr) {
-                            $batchRequests[$dateStr] = $urlsToFetch[$dateStr];
-                        }
-                        
-                        $batchResponses = Http::pool(fn ($pool) => collect($batchRequests)
-                            ->mapWithKeys(fn ($url, $dateStr) => [$dateStr => $pool->timeout(10)->get($url)])
-                            ->all()
-                        );
-                        
-                        $responses = array_merge($responses, $batchResponses);
-                    }
-                } catch (\Exception $e) {
-                    // Fallback: execute sequentially if pool() fails
-                    \Log::warning('Http::pool() failed, falling back to sequential requests: ' . $e->getMessage());
-                    foreach ($urlsToFetch as $dateStr => $url) {
-                        $responses[$dateStr] = Http::timeout(10)->get($url);
-                    }
+                if ($result['success'] ?? false) {
+                    $dates[] = $result;
+                } else {
+                    $dates[] = [
+                        'date'         => $dateStr,
+                        'available'    => false,
+                        'availability' => 0,
+                        'price_adult'  => 0,
+                        'price_child'  => 0,
+                        'price_senior' => 0,
+                    ];
                 }
-            }
-
-            // Process results from cache + parallel requests
-            $dates = [];
-            
-            for ($day = 1; $day <= $lastDay; $day++) {
-                $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
-                
-                // Try cache first
-                if (isset($cachedResults[$dateStr])) {
-                    $dates[] = $cachedResults[$dateStr];
-                    continue;
-                }
-                
-                // Check response from parallel requests
-                if (isset($responses[$dateStr])) {
-                    try {
-                        $response = $responses[$dateStr];
-                        $data = $this->parseXmlResponse($response->body());
-                        $item = $data['item'] ?? $data['tour'] ?? null;
-                        
-                        if ($item && ($dateBlock = $item['date'] ?? null)) {
-                            if (isset($dateBlock[0])) {
-                                foreach ($dateBlock as $block) {
-                                    if (isset($block['@value']) && $block['@value'] === $dateStr) {
-                                        $dateBlock = $block;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if (is_array($dateBlock)) {
-                                $active = ($dateBlock['active'] ?? '0') == '1';
-                                $priceAdult = (float)($dateBlock['price_adult'] ?? 0);
-                                
-                                $result = [
-                                    'date'         => $dateStr,
-                                    'available'    => $active && $priceAdult > 0,
-                                    'availability' => (int)($dateBlock['availability'] ?? 0),
-                                    'price_adult'  => $priceAdult,
-                                    'price_child'  => (float)($dateBlock['price_child'] ?? 0),
-                                    'price_senior' => (float)($dateBlock['price_senior'] ?? 0),
-                                ];
-                                
-                                \Illuminate\Support\Facades\Cache::put($cacheKey, $result, 3600);
-                                $dates[] = $result;
-                                continue;
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        // Continue to fallback for this date
-                    }
-                }
-                
-                // Fallback for failed requests
-                $cacheKey = 'rezgo_price_' . $uid . '_' . $dateStr;
-                $fallback = [
-                    'date'         => $dateStr,
-                    'available'    => false,
-                    'availability' => 0,
-                    'price_adult'  => 0,
-                    'price_child'  => 0,
-                    'price_senior' => 0,
-                ];
-                \Illuminate\Support\Facades\Cache::put($cacheKey, $fallback, 3600);
-                $dates[] = $fallback;
             }
 
             return [
@@ -850,4 +717,3 @@ class RezgoApiService
         }
     }
 }
-

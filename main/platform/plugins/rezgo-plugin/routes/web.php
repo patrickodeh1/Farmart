@@ -60,3 +60,4 @@ Route::prefix('api/rezgo')->name('rezgo.api.')->group(function () {
         'getPricingForMonth'
     ])->name('pricing.month');
 });
+

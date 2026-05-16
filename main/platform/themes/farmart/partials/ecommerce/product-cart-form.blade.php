@@ -40,7 +40,7 @@
                         <button
                             type="button"
                             class="btn btn-outline-primary"
-                            id="rezgo-select-date-btn"
+                            id="rezgo-select-date-btn-{{ $rezgoMapping->rezgo_uid }}"
                         >
                             <span class="svg-icon">
                                 <svg>
@@ -53,11 +53,11 @@
                 </div>
                 @if ($hasRezgoMapping ?? false)
                     <!-- Hidden fields for Rezgo calendar selection -->
-                    <input type="hidden" id="rezgo-selected-date" name="rezgo_date" />
-                    <input type="hidden" id="rezgo-selected-price" name="rezgo_price" />
-                    <input type="hidden" id="rezgo-product-uid" name="rezgo_uid" value="{{ $rezgoMapping->rezgo_uid ?? '' }}" />
+                    <input type="hidden" id="rezgo-selected-date-{{ $rezgoMapping->rezgo_uid }}" name="rezgo_date" />
+                    <input type="hidden" id="rezgo-selected-price-{{ $rezgoMapping->rezgo_uid }}" name="rezgo_price" />
+                    <input type="hidden" id="rezgo-product-uid-{{ $rezgoMapping->rezgo_uid }}" name="rezgo_uid" value="{{ $rezgoMapping->rezgo_uid ?? '' }}" />
                     
-                    <div id="rezgo-calendar-root" data-rezgo-uid="{{ $rezgoMapping->rezgo_uid ?? '' }}"></div>
+                    @include('theme.farmart::partials.ecommerce.components.calendar', ['uid' => $rezgoMapping->rezgo_uid, 'year' => date('Y'), 'month' => date('n')])
                 @endif
                 <button
                     class="btn btn-primary mb-2 add-to-cart-button @if ($product->isOutOfStock()) disabled @endif"

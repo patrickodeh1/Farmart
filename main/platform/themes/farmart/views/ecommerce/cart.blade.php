@@ -234,13 +234,6 @@
                         <div class="cart_totals bg-light p-4 rounded">
                             <h5 class="mb-3">{{ __('Cart totals') }}</h5>
                             <div class="cart_totals-table">
-                                <div class="cart-subtotal d-flex justify-content-between border-bottom pb-3 mb-3">
-                                    <span class="title fw-bold">{{ __('Subtotal') }}:</span>
-                                    <span class="amount fw-bold">
-                                        <span
-                                            class="price-current">{{ format_price(Cart::instance('cart')->rawSubTotal()) }}</span>
-                                    </span>
-                                </div>
                                 @if (EcommerceHelper::isTaxEnabled())
                                     <div class="cart-subtotal d-flex justify-content-between border-bottom pb-3 mb-3">
                                         <span class="title fw-bold">{{ __('Tax') }}:</span>

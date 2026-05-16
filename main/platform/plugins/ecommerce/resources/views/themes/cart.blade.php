@@ -64,6 +64,7 @@
                                             )
 
                                             {!! apply_filters('ecommerce_cart_after_item_content', null, $cartItem) !!}
+                                            <div class="bb-product-price mb-3"><span class="bb-product-price-text fw-bold" data-bb-value="product-price">{{ format_price($cartItem->price) }}</span></div>
                                         </td>
                                         <td data-bb-value="cart-product-price-text" class="cart-price align-middle">
                                             @include(EcommerceHelper::viewPath('includes.product-price'))
@@ -113,8 +114,6 @@
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <div class="card p-4">
                         <div class="cart-checkout-top d-flex align-items-center justify-content-between pb-2 border-bottom mb-2">
-                            <span class="cart-checkout-top-title fw-bold">{{ __('Subtotal') }}</span>
-                            <span data-bb-value="cart-subtotal" class="cart-checkout-top-price fw-bold">{{ format_price(Cart::instance('cart')->rawSubTotal()) }}</span>
                         </div>
                         @if (EcommerceHelper::isTaxEnabled())
                             <div class="cart-checkout-tax d-flex align-items-center justify-content-between mb-2">

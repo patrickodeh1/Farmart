@@ -1,4 +1,4 @@
-<?php if (! $__env->hasRenderedOnce('a42c2868-ef3d-4203-af19-b1273b73bbb7')): $__env->markAsRenderedOnce('a42c2868-ef3d-4203-af19-b1273b73bbb7'); ?>
+<?php if (! $__env->hasRenderedOnce('de79bf44-26fb-455d-8f5c-ba7a124fb0cc')): $__env->markAsRenderedOnce('de79bf44-26fb-455d-8f5c-ba7a124fb0cc'); ?>
     <script src="<?php echo e(asset('vendor/core/packages/theme/js/toast.js')); ?>?v=<?php echo e(get_cms_version()); ?>"></script>
 
     <?php if(

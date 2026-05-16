@@ -469,6 +469,19 @@ MartApp.isRTL = $('body').prop('dir') === 'rtl'
             const $form = $(this).closest('form.cart-form')
             const $btn = $(this)
             $btn.addClass('loading')
+            // Rezgo guard: if this form has a rezgo hidden date field and it is empty, open the calendar modal
+            const $rezgoDate = $form.find("input[id^=rezgo-selected-date-]")
+            if ($rezgoDate.length && !$rezgoDate.val()) {
+                $btn.removeClass("loading")
+                const uid = $rezgoDate.attr("id").replace("rezgo-selected-date-", "")
+                const modal = document.getElementById("rezgo-modal-" + uid)
+                if (modal) {
+                    document.body.appendChild(modal)
+                    modal.style.display = "flex"
+                    document.body.style.overflow = "hidden"
+                }
+                return
+            }
 
             let data = $form.serializeArray()
             data.push({ name: 'checkout', value: $btn.prop('name') === 'checkout' ? 1 : 0 })
